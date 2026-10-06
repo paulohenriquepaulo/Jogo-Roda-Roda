@@ -22,6 +22,7 @@
 const STORAGE_PALAVRAS = "palavrasJogo";
 const STORAGE_CONFIG = "configJogo";
 const STORAGE_TEMA = "temaJogo";
+const STORAGE_BANCO = "bancoBiblicoV1";
 
 const MAX_JOGADORES = 8;
 const MAX_DICAS = 3;
@@ -46,28 +47,67 @@ const CONFIG_PADRAO = {
   animacoesAtivas: true,
 };
 
-const PALAVRAS_EXEMPLO = [
-  {
-    id: 1,
-    palavra: "ABACAXI",
-    categoria: "Frutas",
-    dicas: ["É uma fruta tropical.", "Possui uma casca áspera.", "Seu nome começa com a letra A."],
-    pontos: 100,
-  },
-  {
-    id: 2,
-    palavra: "ELEFANTE",
-    categoria: "Animais",
-    dicas: ["É considerado o maior animal terrestre.", "Possui uma tromba longa."],
-    pontos: 100,
-  },
-  {
-    id: 3,
-    palavra: "BRASIL",
-    categoria: "Países",
-    dicas: ["País localizado na América do Sul."],
-    pontos: 100,
-  },
+/** Banco inicial: 50 desafios bíblicos (palavra, dicas). */
+const BANCO_BIBLICO = [
+  ["ADÃO", ["Primeiro homem criado por Deus.", "Viveu no Jardim do Éden."]],
+  ["EVA", ["Primeira mulher criada por Deus.", "Foi formada a partir da costela de Adão."]],
+  ["NOÉ", ["Construiu uma grande arca.", "Salvou sua família e os animais do dilúvio.", "Recebeu o arco-íris como sinal da aliança."]],
+  ["ABRAÃO", ["É chamado de pai da fé.", "Deus prometeu que sua descendência seria numerosa como as estrelas."]],
+  ["ISAQUE", ["Filho de Abraão e Sara.", "Quase foi oferecido em sacrifício."]],
+  ["JACÓ", ["Recebeu o nome de Israel.", "Sonhou com uma escada que chegava ao céu.", "Teve doze filhos."]],
+  ["JOSÉ", ["Foi vendido pelos irmãos.", "Tornou-se governador do Egito.", "Ganhou do pai uma túnica colorida."]],
+  ["MOISÉS", ["Libertou o povo hebreu do Egito.", "Recebeu os Dez Mandamentos no monte."]],
+  ["ARÃO", ["Era irmão de Moisés.", "Foi o primeiro sumo sacerdote."]],
+  ["JOSUÉ", ["Sucedeu Moisés como líder.", "Viu as muralhas de Jericó caírem."]],
+  ["DÉBORA", ["Foi juíza e profetisa de Israel.", "Liderou o povo junto com Baraque."]],
+  ["SANSÃO", ["Tinha força extraordinária.", "Sua força estava nos cabelos.", "Foi traído por Dalila."]],
+  ["RUTE", ["Mulher de Moabe fiel à sogra Noemi.", "Casou-se com Boaz."]],
+  ["SAMUEL", ["Profeta que ungiu Saul e Davi.", "Foi dedicado a Deus por sua mãe, Ana."]],
+  ["SAUL", ["Foi o primeiro rei de Israel.", "Foi o primeiro rei, e Davi o sucedeu depois de sua queda."]],
+  ["DAVI", ["Venceu um gigante com uma pedra.", "Foi rei de Israel e escreveu salmos."]],
+  ["GOLIAS", ["Era um gigante filisteu.", "Foi derrotado por um jovem pastor."]],
+  ["SALOMÃO", ["Rei famoso pela sabedoria.", "Construiu o primeiro templo em Jerusalém.", "Era filho de Davi."]],
+  ["ELIAS", ["Profeta levado ao céu num redemoinho.", "Enfrentou os profetas de Baal no monte Carmelo."]],
+  ["ELISEU", ["Foi sucessor do profeta Elias.", "Recebeu uma porção dobrada do espírito de seu mestre."]],
+  ["JONAS", ["Foi engolido por um grande peixe.", "Pregou na cidade de Nínive."]],
+  ["DANIEL", ["Foi lançado na cova dos leões.", "Interpretava sonhos na Babilônia.", "Seus amigos foram salvos da fornalha."]],
+  ["ESTER", ["Rainha que salvou seu povo.", "Seu primo se chamava Mardoqueu."]],
+  ["JÓ", ["Homem que enfrentou grandes sofrimentos.", "É exemplo de paciência e fé."]],
+  ["MARIA", ["Foi a mãe de Jesus.", "Recebeu a visita do anjo Gabriel."]],
+  ["JESUS", ["É o Filho de Deus.", "Nasceu em Belém.", "Foi crucificado e ressuscitou ao terceiro dia."]],
+  ["PEDRO", ["Era pescador antes de seguir Jesus.", "Negou o Mestre três vezes."]],
+  ["PAULO", ["Antes se chamava Saulo.", "Escreveu várias cartas do Novo Testamento.", "Fez viagens missionárias."]],
+  ["JOÃO BATISTA", ["Batizou Jesus no rio Jordão.", "Anunciou a vinda do Messias."]],
+  ["LÁZARO", ["Foi ressuscitado por Jesus.", "Era irmão de Marta e Maria."]],
+  ["JUDAS", ["Traiu Jesus por trinta moedas de prata."]],
+  ["MATEUS", ["Era cobrador de impostos.", "Tornou-se apóstolo e escreveu um evangelho."]],
+  ["GÊNESIS", ["É o primeiro livro da Bíblia.", "Conta a criação do mundo."]],
+  ["ÊXODO", ["Livro que narra a saída do povo do Egito."]],
+  ["SALMOS", ["Livro de cânticos e orações.", "Muitos foram escritos por Davi."]],
+  ["PROVÉRBIOS", ["Livro de ditados de sabedoria.", "É atribuído em grande parte a Salomão."]],
+  ["APOCALIPSE", ["É o último livro da Bíblia.", "Foi escrito por João na ilha de Patmos."]],
+  ["EVANGELHO", ["Significa boa notícia.", "Mateus, Marcos, Lucas e João escreveram os seus."]],
+  ["ÉDEN", ["Jardim onde viveram Adão e Eva."]],
+  ["BELÉM", ["Cidade onde Jesus nasceu.", "Também foi a cidade do rei Davi."]],
+  ["JERUSALÉM", ["É a cidade santa de Israel.", "Ali ficava o templo construído por Salomão."]],
+  ["NAZARÉ", ["Cidade onde Jesus cresceu."]],
+  ["JORDÃO", ["Rio onde Jesus foi batizado.", "O povo o atravessou para entrar na terra prometida."]],
+  ["EGITO", ["Terra onde os hebreus foram escravos.", "Sofreu dez pragas."]],
+  ["BABEL", ["Torre que os homens tentaram construir até o céu.", "Ali as línguas foram confundidas."]],
+  ["SINAI", ["Monte onde Moisés recebeu a Lei."]],
+  ["CANAÃ", ["Era a terra prometida ao povo de Israel.", "Dizia-se que nela corria leite e mel."]],
+  ["ARCA DE NOÉ", ["Grande embarcação construída por ordem de Deus.", "Abrigou casais de animais durante o dilúvio."]],
+  ["MANÁ", ["Alimento que caiu do céu no deserto.", "Sustentou os hebreus por quarenta anos."]],
+  ["PENTECOSTES", ["Dia em que o Espírito Santo desceu sobre os discípulos.", "Eles falaram em outras línguas."]],
+].map(([palavra, dicas], i) => ({ id: i + 1, palavra, termos: [palavra], categoria: "Bíblia", dicas, pontos: 100 }));
+
+const PALAVRAS_EXEMPLO = BANCO_BIBLICO;
+
+/** Exemplos antigos (sem relação bíblica) removidos na migração do banco. */
+const EXEMPLOS_ANTIGOS = [
+  ["ABACAXI", "Frutas"],
+  ["ELEFANTE", "Animais"],
+  ["BRASIL", "Países"],
 ];
 
 function estadoInicialPartida() {
@@ -170,6 +210,7 @@ function init() {
   carregarConfiguracoes();
   aplicarTema(localStorage.getItem(STORAGE_TEMA) || "claro");
   carregarPalavras();
+  migrarBancoBiblico();
   construirTeclado();
   construirSeletoresPartida();
   construirBlocosDesafio("cad");
@@ -216,6 +257,26 @@ function carregarPalavras() {
   });
   // grava a versão migrada (dica -> dicas) se algo mudou
   if (JSON.stringify(palavras) !== raw) salvarPalavras();
+}
+
+/**
+ * Executa uma única vez: remove os 3 exemplos antigos (sem tema bíblico), se ainda existirem,
+ * e acrescenta os 50 desafios bíblicos que ainda não estiverem cadastrados.
+ * Palavras cadastradas pelo usuário não são alteradas.
+ */
+function migrarBancoBiblico() {
+  if (localStorage.getItem(STORAGE_BANCO)) return;
+  palavras = palavras.filter((p) => {
+    const termos = obterTermos(p);
+    return !(termos.length === 1 && EXEMPLOS_ANTIGOS.some(([w, c]) => w === termos[0] && c === p.categoria));
+  });
+  const existentes = new Set(palavras.map((p) => obterTermos(p).join("|")));
+  BANCO_BIBLICO.forEach((item) => {
+    if (existentes.has(item.palavra)) return;
+    palavras.push({ ...item, id: proximoId(), termos: [...item.termos], dicas: [...item.dicas] });
+  });
+  salvarPalavras();
+  localStorage.setItem(STORAGE_BANCO, "1");
 }
 
 function salvarPalavras() {

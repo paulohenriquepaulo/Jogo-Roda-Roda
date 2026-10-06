@@ -76,7 +76,7 @@ Em **Palavras Cadastradas** aparecem as palavras (ex.: `ABACAXI + MANGA + CAJU`)
 | `configJogo`    | Pontos sugeridos, penalidade por erro, penalidade por dica, som e animações |
 | `temaJogo`      | `claro` ou `escuro`                                             |
 
-A partida em andamento **não** é salva: placar e rodadas existem apenas enquanto a partida acontece. Na primeira execução, se não houver palavras, três exemplos (ABACAXI com 3 dicas, ELEFANTE com 2, BRASIL com 1) são inseridos.
+A partida em andamento **não** é salva: placar e rodadas existem apenas enquanto a partida acontece. Na primeira execução o jogo já vem com **50 desafios de tema bíblico** (personagens, livros, lugares e eventos), todos com a categoria "Bíblia". Quem já tinha o jogo salvo recebe esses desafios uma única vez e perde apenas os 3 exemplos antigos (ABACAXI, ELEFANTE, BRASIL); as palavras cadastradas por você não são alteradas. Você pode excluir qualquer uma em **Palavras Cadastradas**.
 
 ## Configurações
 
