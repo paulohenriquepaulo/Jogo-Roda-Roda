@@ -25,6 +25,7 @@ const STORAGE_TEMA = "temaJogo";
 
 const MAX_JOGADORES = 8;
 const MAX_DICAS = 3;
+const MAX_PALAVRAS = 3; // palavras por desafio
 const OPCOES_QTD_PALAVRAS = [5, 10, 15, 20, 25, 30];
 const OPCOES_PENALIDADE_DICA = [0, 5, 10];
 const TELAS_DE_JOGO = ["jogo", "transicao", "final"];
@@ -150,6 +151,17 @@ function obterDicas(item) {
   return [];
 }
 
+/** Palavras do desafio: formato novo (termos: []) ou antigo (palavra: "..."). */
+function obterTermos(item) {
+  if (!item) return [];
+  if (Array.isArray(item.termos)) {
+    const lista = item.termos.map((t) => String(t ?? "").trim().toUpperCase()).filter(Boolean);
+    if (lista.length) return lista;
+  }
+  const unica = String(item.palavra || "").trim().toUpperCase();
+  return unica ? [unica] : [];
+}
+
 /* ==========================================================================
    3. PERSISTÊNCIA E MIGRAÇÃO
    ========================================================================== */
@@ -160,6 +172,8 @@ function init() {
   carregarPalavras();
   construirTeclado();
   construirSeletoresPartida();
+  construirBlocosDesafio("cad");
+  construirBlocosDesafio("edit");
   registrarEventos();
   $("cad-pontos").value = config.pontosIniciais;
   mostrarTela("inicio");
@@ -168,9 +182,11 @@ function init() {
 /** Converte um registro (novo ou antigo) para o modelo atual. Não perde dados. */
 function normalizarPalavraSalva(p) {
   const pontos = Number(p.pontos);
+  const termos = obterTermos(p);
   return {
     id: Number(p.id) || 0,
-    palavra: String(p.palavra || "").trim().toUpperCase(),
+    palavra: termos[0] || "",
+    termos,
     categoria: String(p.categoria || "Geral").trim() || "Geral",
     dicas: obterDicas(p),
     pontos: Number.isFinite(pontos) && pontos >= 0 ? Math.round(pontos) : config.pontosIniciais,
@@ -186,7 +202,7 @@ function carregarPalavras() {
   }
   try {
     const dados = JSON.parse(raw);
-    palavras = Array.isArray(dados) ? dados.filter((p) => p && p.palavra).map(normalizarPalavraSalva) : [];
+    palavras = Array.isArray(dados) ? dados.filter((p) => p && obterTermos(p).length).map(normalizarPalavraSalva) : [];
   } catch {
     palavras = [];
     return;
@@ -332,17 +348,27 @@ function lerPontos(valor) {
 }
 
 function validarCadastro(dados) {
-  if (!dados.palavra.trim()) return "Informe a palavra.";
-  if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(dados.palavra)) return "A palavra precisa conter ao menos uma letra.";
-  if (!String(dados.dicas[0] ?? "").trim()) return "Informe a dica 1 (obrigatória).";
+  const termos = (dados.termos || []).map((t) => String(t ?? "").trim());
+  if (!termos.length || termos.some((t) => !t)) {
+    return termos.length > 1 ? "Preencha todas as palavras do desafio." : "Informe a palavra.";
+  }
+  if (termos.some((t) => !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(t))) return "Cada palavra precisa conter ao menos uma letra.";
+  const normalizadas = termos.map(normalizarResposta);
+  if (new Set(normalizadas).size !== normalizadas.length) return "As palavras do desafio não podem se repetir.";
+  const dicas = (dados.dicas || []).map((d) => String(d ?? "").trim());
+  if (!dicas.length || dicas.some((d) => !d)) {
+    return dicas.length > 1 ? "Preencha todas as dicas escolhidas." : "Informe a dica 1 (obrigatória).";
+  }
   const pts = lerPontos(dados.pontos);
   if (!Number.isFinite(pts) || pts < 0) return "Pontuação inválida.";
   return null;
 }
 
 function montarRegistro(dados) {
+  const termos = dados.termos.map((t) => t.trim().toUpperCase()).slice(0, MAX_PALAVRAS);
   return {
-    palavra: dados.palavra.trim().toUpperCase(),
+    palavra: termos[0],
+    termos,
     categoria: (dados.categoria || "Geral").trim() || "Geral",
     dicas: limparDicas(dados.dicas),
     pontos: Math.round(lerPontos(dados.pontos)),
@@ -372,8 +398,66 @@ function excluirPalavra(id) {
   salvarPalavras();
 }
 
-function lerDicasDoForm(prefixo) {
-  return [1, 2, 3].map((n) => $(`${prefixo}-dica${n}`).value);
+/** Cria, no formulário "cad" ou "edit", os seletores e campos de palavras e dicas do desafio. */
+function construirBlocosDesafio(prefixo) {
+  const tipos = [
+    ["palavra", "Quantas palavras neste desafio?", "Palavra", MAX_PALAVRAS, ["Ex.: ABACAXI ou RIO DE JANEIRO", "Ex.: BANANA", "Ex.: LARANJA"]],
+    ["dica", "Quantas dicas neste desafio?", "Dica", MAX_DICAS, ["Ex.: É uma fruta tropical.", "Ex.: Possui uma casca áspera.", "Ex.: Seu nome começa com a letra A."]],
+  ];
+  tipos.forEach(([tipo, rotuloQtd, rotulo, max, exemplos]) => {
+    const bloco = $(`${prefixo}-bloco-${tipo}s`);
+    bloco.textContent = "";
+
+    const campoQtd = criar("div", "campo");
+    const lblQtd = criar("label", "", rotuloQtd);
+    lblQtd.setAttribute("for", `${prefixo}-qtd-${tipo}s`);
+    const select = criar("select");
+    select.id = `${prefixo}-qtd-${tipo}s`;
+    for (let n = 1; n <= max; n++) {
+      const opt = criar("option", "", String(n));
+      opt.value = String(n);
+      select.appendChild(opt);
+    }
+    select.addEventListener("change", () => atualizarCamposDesafio(prefixo));
+    campoQtd.appendChild(lblQtd);
+    campoQtd.appendChild(select);
+    bloco.appendChild(campoQtd);
+
+    for (let n = 1; n <= max; n++) {
+      const campo = criar("div", "campo");
+      const lbl = criar("label", "", `${rotulo} ${n}`);
+      lbl.setAttribute("for", `${prefixo}-${tipo}${n}`);
+      const input = criar("input");
+      input.type = "text";
+      input.id = `${prefixo}-${tipo}${n}`;
+      input.placeholder = exemplos[n - 1];
+      input.autocomplete = "off";
+      campo.appendChild(lbl);
+      campo.appendChild(input);
+      bloco.appendChild(campo);
+    }
+  });
+  atualizarCamposDesafio(prefixo);
+}
+
+/** Mostra só os campos correspondentes às quantidades escolhidas. */
+function atualizarCamposDesafio(prefixo) {
+  [["palavra", MAX_PALAVRAS], ["dica", MAX_DICAS]].forEach(([tipo, max]) => {
+    const qtd = Number($(`${prefixo}-qtd-${tipo}s`).value);
+    for (let n = 1; n <= max; n++) {
+      const input = $(`${prefixo}-${tipo}${n}`);
+      input.closest(".campo").classList.toggle("hidden", n > qtd);
+      input.required = n <= qtd;
+    }
+  });
+}
+
+function lerDesafio(prefixo) {
+  const ler = (tipo) => {
+    const qtd = Number($(`${prefixo}-qtd-${tipo}s`).value);
+    return Array.from({ length: qtd }, (_, i) => $(`${prefixo}-${tipo}${i + 1}`).value);
+  };
+  return { termos: ler("palavra"), dicas: ler("dica") };
 }
 
 function renderizarLista() {
@@ -387,7 +471,7 @@ function renderizarLista() {
   const filtradas = palavras.filter((p) => {
     const matchBusca =
       !busca ||
-      p.palavra.toLowerCase().includes(busca) ||
+      obterTermos(p).some((t) => t.toLowerCase().includes(busca)) ||
       obterDicas(p).some((d) => d.toLowerCase().includes(busca)) ||
       (p.categoria || "").toLowerCase().includes(busca);
     const matchCat = !cat || p.categoria === cat;
@@ -407,12 +491,13 @@ function renderizarLista() {
 
   filtradas.forEach((item) => {
     const dicas = obterDicas(item);
+    const termos = obterTermos(item);
     const card = criar("article", "card palavra-item");
 
     const header = criar("div", "palavra-item-header");
-    header.appendChild(criar("h3", "palavra-item-titulo", item.palavra));
+    header.appendChild(criar("h3", "palavra-item-titulo", termos.join(" + ")));
     header.appendChild(
-      criar("span", "palavra-item-meta", `${item.categoria || "Geral"} · ${dicas.length} ${dicas.length === 1 ? "dica" : "dicas"} · ${item.pontos} pontos`)
+      criar("span", "palavra-item-meta", `${item.categoria || "Geral"} · ${termos.length} ${termos.length === 1 ? "palavra" : "palavras"} · ${dicas.length} ${dicas.length === 1 ? "dica" : "dicas"} · ${item.pontos} pontos`)
     );
 
     const listaDicas = criar("ol", "palavra-item-dicas");
@@ -421,12 +506,12 @@ function renderizarLista() {
     const acoes = criar("div", "palavra-item-acoes");
     const btnEdit = criar("button", "btn btn-secondary btn-sm", "Editar");
     btnEdit.type = "button";
-    btnEdit.setAttribute("aria-label", `Editar palavra ${item.palavra}`);
+    btnEdit.setAttribute("aria-label", `Editar palavra ${termos.join(" e ")}`);
     btnEdit.addEventListener("click", () => abrirEditar(item.id));
 
     const btnDel = criar("button", "btn btn-danger btn-sm", "Excluir");
     btnDel.type = "button";
-    btnDel.setAttribute("aria-label", `Excluir palavra ${item.palavra}`);
+    btnDel.setAttribute("aria-label", `Excluir palavra ${termos.join(" e ")}`);
     btnDel.addEventListener("click", () => confirmarExclusao(item.id));
 
     acoes.appendChild(btnEdit);
@@ -473,11 +558,15 @@ async function confirmarExclusao(id) {
 function abrirEditar(id) {
   const item = palavras.find((p) => p.id === id);
   if (!item) return;
-  const dicas = obterDicas(item);
+  const termos = obterTermos(item).slice(0, MAX_PALAVRAS);
+  const dicas = obterDicas(item).slice(0, MAX_DICAS);
   $("edit-id").value = item.id;
   $("edit-categoria").value = item.categoria || "";
-  $("edit-palavra").value = item.palavra;
-  [1, 2, 3].forEach((n) => ($(`edit-dica${n}`).value = dicas[n - 1] || ""));
+  $("edit-qtd-palavras").value = String(Math.max(1, termos.length));
+  $("edit-qtd-dicas").value = String(Math.max(1, dicas.length));
+  for (let n = 1; n <= MAX_PALAVRAS; n++) $(`edit-palavra${n}`).value = termos[n - 1] || "";
+  for (let n = 1; n <= MAX_DICAS; n++) $(`edit-dica${n}`).value = dicas[n - 1] || "";
+  atualizarCamposDesafio("edit");
   $("edit-pontos").value = item.pontos;
   $("edit-erro").hidden = true;
   mostrarTela("editar");
@@ -491,6 +580,35 @@ function preencherFormConfig() {
   $("cfg-som").checked = config.somAtivo;
   $("cfg-animacoes").checked = config.animacoesAtivas;
   aplicarTema(localStorage.getItem(STORAGE_TEMA) || "claro");
+}
+
+/** Resumo das regras (usa os valores configurados de pontos e penalidades). */
+function mostrarRegras() {
+  const regras = [
+    ["👥 Jogadores", "De 1 a 8 jogadores, um por vez, sempre na mesma ordem. Todos começam com 0 pontos."],
+    ["🔤 Sua vez", "Escolha uma letra no teclado da tela ou do computador. Acertando ou errando, a vez passa para o próximo jogador."],
+    ["✅ Letra certa", `A letra aparece em todos os lugares da palavra e você ganha ${config.pontosPorLetra} pontos.`],
+    ["❌ Letra errada", config.penalidadeErro > 0 ? `Você perde ${config.penalidadeErro} pontos.` : "Não perde pontos, mas a vez passa."],
+    ["💡 Dicas", `Cada desafio tem de 1 a 3 dicas. Pedir a próxima dica reduz o valor da palavra em ${config.penalidadeDica} pontos.`],
+    ["🧩 Desafios", "Um desafio pode ter até 3 palavras. Cada letra vale para todas ao mesmo tempo."],
+    ["🏆 Completar a palavra", "Quem completa a palavra (última letra ou Resolver) ganha os pontos dela, proporcionais ao que ainda estava oculto. Palavra de 100 pontos com 90% já mostrada vale 10."],
+    ["🎯 Resolver palavra", "Tente a resposta completa na sua vez. Se errar, perde pontos e continua jogando."],
+    ["⏭️ Passar a vez", "A mesma palavra vai para o próximo jogador. Se todos passarem, a palavra é descartada."],
+    ["🏁 Fim da partida", "Quando as palavras acabam, o jogador com mais pontos vence. Em caso de empate, ficam na mesma posição."],
+  ];
+  const lista = criar("ul", "regras-lista");
+  regras.forEach(([titulo, texto]) => {
+    const li = criar("li");
+    li.appendChild(criar("strong", "", titulo));
+    li.appendChild(criar("span", "", texto));
+    lista.appendChild(li);
+  });
+  mostrarModal({
+    titulo: "📖 Regras do Jogo",
+    corpoHtml: lista,
+    classeExtra: "modal-regras",
+    acoes: [{ rotulo: "Entendi", valor: true, classe: "btn-primary" }],
+  });
 }
 
 /* ==========================================================================
@@ -635,7 +753,7 @@ function embaralharPalavras(array) {
 function sortearPalavrasDaPartida(quantidade) {
   return embaralharPalavras(palavras)
     .slice(0, quantidade)
-    .map((p) => ({ ...p, dicas: obterDicas(p) }));
+    .map((p) => ({ ...p, termos: obterTermos(p), dicas: obterDicas(p) }));
 }
 
 function jogadorAtual() {
@@ -709,16 +827,22 @@ function proximaPalavra() {
   partida.indicePalavraAtual++;
 }
 
-/** Conta as posições de letras da palavra atual: total e ainda ocultas. */
+/** Palavras do desafio atual. */
+function termosAtuais() {
+  return partida.palavraAtual ? obterTermos(partida.palavraAtual) : [];
+}
+
+/** Conta as posições de letras de todas as palavras do desafio: total e ainda ocultas. */
 function contarLetras() {
-  const palavra = partida.palavraAtual.palavra;
   let total = 0;
   let ocultas = 0;
-  for (let i = 0; i < palavra.length; i++) {
-    if (!ehLetraAdivinhavel(palavra[i])) continue;
-    total++;
-    if (!letraReveladaNaPosicao(i)) ocultas++;
-  }
+  termosAtuais().forEach((termo) => {
+    for (const ch of termo) {
+      if (!ehLetraAdivinhavel(ch)) continue;
+      total++;
+      if (!letraRevelada(ch)) ocultas++;
+    }
+  });
   return { total, ocultas };
 }
 
@@ -799,22 +923,29 @@ function tentarLetra(letra) {
 async function resolverPalavra() {
   if (!acaoPermitida()) return;
 
-  const wrap = criar("div");
-  const label = criar("label", "", "Digite sua resposta");
-  label.setAttribute("for", "input-resolver");
-  const input = criar("input");
-  input.type = "text";
-  input.id = "input-resolver";
-  input.autocomplete = "off";
-  input.setAttribute("aria-label", "Digite sua resposta");
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      document.querySelector("#modal-actions .btn-accent")?.click();
-    }
+  const termos = termosAtuais();
+  const wrap = criar("div", "resolver-campos");
+  if (termos.length > 1) wrap.appendChild(criar("p", "", `Digite as ${termos.length} palavras (em qualquer ordem).`));
+  const inputs = termos.map((_, i) => {
+    const id = i === 0 ? "input-resolver" : `input-resolver-${i + 1}`;
+    const rotulo = termos.length > 1 ? `Palavra ${i + 1}` : "Digite sua resposta";
+    const label = criar("label", "", rotulo);
+    label.setAttribute("for", id);
+    const input = criar("input");
+    input.type = "text";
+    input.id = id;
+    input.autocomplete = "off";
+    input.setAttribute("aria-label", rotulo);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.querySelector("#modal-actions .btn-accent")?.click();
+      }
+    });
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    return input;
   });
-  wrap.appendChild(label);
-  wrap.appendChild(input);
 
   const confirmou = await mostrarModal({
     titulo: "🎯 Resolver palavra",
@@ -826,13 +957,15 @@ async function resolverPalavra() {
   });
   if (!confirmou) return;
 
-  const resposta = normalizarResposta(input.value);
-  if (!resposta) {
-    mostrarMensagem("Digite uma resposta para resolver.");
+  const respostas = inputs.map((i) => normalizarResposta(i.value));
+  if (respostas.some((r) => !r)) {
+    mostrarMensagem(termos.length > 1 ? "Preencha todas as palavras para resolver." : "Digite uma resposta para resolver.");
     return;
   }
 
-  if (resposta === normalizarResposta(partida.palavraAtual.palavra)) {
+  const alvo = termos.map(normalizarResposta);
+  const certo = [...respostas].sort().join("|") === [...alvo].sort().join("|");
+  if (certo) {
     const ganhos = calcularPontuacao();
     revelarPalavraCompleta();
     acertarPalavra(ganhos);
@@ -846,13 +979,13 @@ async function resolverPalavra() {
 }
 
 function revelarPalavraCompleta() {
-  const palavra = partida.palavraAtual.palavra;
-  for (let i = 0; i < palavra.length; i++) {
-    if (ehLetraAdivinhavel(palavra[i])) {
-      const n = normalizarLetra(palavra[i]);
+  termosAtuais().forEach((termo) => {
+    for (const ch of termo) {
+      if (!ehLetraAdivinhavel(ch)) continue;
+      const n = normalizarLetra(ch);
       if (!partida.letrasCorretas.includes(n)) partida.letrasCorretas.push(n);
     }
-  }
+  });
   mostrarPalavra("*");
 }
 
@@ -905,7 +1038,7 @@ async function passarVez() {
 async function finalizarRodada({ resultado, jogador, ganhos }) {
   const ultima = partida.indicePalavraAtual + 1 >= partida.totalPalavras;
   const rotuloBotao = ultima ? "🏁 VER RESULTADO FINAL" : "PRÓXIMA RODADA";
-  const palavra = partida.palavraAtual.palavra;
+  const palavra = termosAtuais().join(" • ");
 
   if (resultado === "acertou") {
     tocarSom("vitoria");
@@ -1096,61 +1229,64 @@ function atualizarValorPalavra() {
 function mostrarPalavra(letraNova = "") {
   const container = $("palavra-container");
   container.textContent = "";
-  const palavra = partida.palavraAtual.palavra;
+  const termos = termosAtuais();
 
-  for (let i = 0; i < palavra.length; i++) {
-    const ch = palavra[i];
-    const slot = criar("div");
-    slot.dataset.index = String(i);
-
-    if (ch === " ") {
-      slot.className = "letra-slot espaco";
-      slot.setAttribute("aria-hidden", "true");
-    } else if (!ehLetraAdivinhavel(ch)) {
-      slot.className = "letra-slot fixo";
-      slot.textContent = ch;
-      slot.setAttribute("aria-label", `Caractere ${ch}`);
-    } else {
-      const revelada = letraReveladaNaPosicao(i);
-      const nova = revelada && letraNova && (letraNova === "*" || normalizarLetra(ch) === letraNova);
-      slot.className = "letra-slot" + (revelada ? " revelada" : "") + (nova ? " nova" : "");
-      slot.textContent = revelada ? ch : "_";
-      slot.setAttribute("aria-label", revelada ? `Letra ${ch}` : "Letra oculta");
+  termos.forEach((termo, t) => {
+    const linha = criar("div", "palavra-linha");
+    if (termos.length > 1) {
+      linha.setAttribute("role", "group");
+      linha.setAttribute("aria-label", `Palavra ${t + 1}`);
     }
-    container.appendChild(slot);
-  }
+    for (const ch of termo) {
+      const slot = criar("div");
+      if (ch === " ") {
+        slot.className = "letra-slot espaco";
+        slot.setAttribute("aria-hidden", "true");
+      } else if (!ehLetraAdivinhavel(ch)) {
+        slot.className = "letra-slot fixo";
+        slot.textContent = ch;
+        slot.setAttribute("aria-label", `Caractere ${ch}`);
+      } else {
+        const revelada = letraRevelada(ch);
+        const nova = revelada && letraNova && (letraNova === "*" || normalizarLetra(ch) === letraNova);
+        slot.className = "letra-slot" + (revelada ? " revelada" : "") + (nova ? " nova" : "");
+        slot.textContent = revelada ? ch : "_";
+        slot.setAttribute("aria-label", revelada ? `Letra ${ch}` : "Letra oculta");
+      }
+      linha.appendChild(slot);
+    }
+    container.appendChild(linha);
+  });
 }
 
-function letraReveladaNaPosicao(index) {
-  const ch = partida.palavraAtual.palavra[index];
+/** A letra já foi descoberta? (caracteres que não são letras contam como revelados) */
+function letraRevelada(ch) {
   if (!ehLetraAdivinhavel(ch)) return true;
   const norm = normalizarLetra(ch);
   return partida.letrasCorretas.some((l) => normalizarLetra(l) === norm);
 }
 
-function indicesDaLetra(letra) {
+/** Quantas vezes a letra aparece em todas as palavras do desafio. */
+function ocorrenciasDaLetra(letra) {
   const alvo = normalizarLetra(letra);
-  const palavra = partida.palavraAtual.palavra;
-  const indices = [];
-  for (let i = 0; i < palavra.length; i++) {
-    if (ehLetraAdivinhavel(palavra[i]) && normalizarLetra(palavra[i]) === alvo) indices.push(i);
-  }
-  return indices;
+  let n = 0;
+  termosAtuais().forEach((termo) => {
+    for (const ch of termo) {
+      if (ehLetraAdivinhavel(ch) && normalizarLetra(ch) === alvo) n++;
+    }
+  });
+  return n;
 }
 
 function verificarLetra(letra) {
   const norm = normalizarLetra(letra);
   if (!norm || norm.length !== 1 || !/[A-Z]/.test(norm)) return null;
   if (partida.letrasEscolhidas.some((l) => normalizarLetra(l) === norm)) return "usada";
-  return indicesDaLetra(letra).length > 0 ? "correta" : "errada";
+  return ocorrenciasDaLetra(letra) > 0 ? "correta" : "errada";
 }
 
 function palavraCompletamenteRevelada() {
-  const palavra = partida.palavraAtual.palavra;
-  for (let i = 0; i < palavra.length; i++) {
-    if (ehLetraAdivinhavel(palavra[i]) && !letraReveladaNaPosicao(i)) return false;
-  }
-  return true;
+  return contarLetras().ocultas === 0;
 }
 
 function mostrarFeedback(msg, tipo) {
@@ -1381,6 +1517,7 @@ function registrarEventos() {
       tocarSom("clique");
       const acao = btn.dataset.acao;
       if (acao === "jogar") configurarPartida();
+      else if (acao === "regras") mostrarRegras();
       else mostrarTela(acao);
     });
   });
@@ -1406,9 +1543,8 @@ function registrarEventos() {
     e.preventDefault();
     const erroEl = $("cad-erro");
     const err = cadastrarPalavra({
-      palavra: $("cad-palavra").value,
+      ...lerDesafio("cad"),
       categoria: $("cad-categoria").value,
-      dicas: lerDicasDoForm("cad"),
       pontos: $("cad-pontos").value,
     });
     if (err) {
@@ -1418,6 +1554,7 @@ function registrarEventos() {
     }
     erroEl.hidden = true;
     $("form-cadastro").reset();
+    atualizarCamposDesafio("cad");
     $("cad-pontos").value = config.pontosIniciais;
     mostrarMensagem("Palavra cadastrada com sucesso!");
   });
@@ -1427,9 +1564,8 @@ function registrarEventos() {
     e.preventDefault();
     const erroEl = $("edit-erro");
     const err = editarPalavra(Number($("edit-id").value), {
-      palavra: $("edit-palavra").value,
+      ...lerDesafio("edit"),
       categoria: $("edit-categoria").value,
-      dicas: lerDicasDoForm("edit"),
       pontos: $("edit-pontos").value,
     });
     if (err) {
