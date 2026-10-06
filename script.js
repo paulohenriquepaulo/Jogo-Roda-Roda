@@ -592,7 +592,7 @@ function mostrarRegras() {
     ["💡 Dicas", `Cada desafio tem de 1 a 3 dicas. Pedir a próxima dica reduz o valor da palavra em ${config.penalidadeDica} pontos.`],
     ["🧩 Desafios", "Um desafio pode ter até 3 palavras. Cada letra vale para todas ao mesmo tempo."],
     ["🏆 Completar a palavra", "Quem completa a palavra (última letra ou Resolver) ganha os pontos dela, proporcionais ao que ainda estava oculto. Palavra de 100 pontos com 90% já mostrada vale 10."],
-    ["🎯 Resolver palavra", "Tente a resposta completa na sua vez. Se errar, perde pontos e continua jogando."],
+    ["🎯 Resolver palavra", "Tente a resposta completa na sua vez. Se errar, você perde metade dos seus pontos e a vez passa para o próximo jogador."],
     ["⏭️ Passar a vez", "A mesma palavra vai para o próximo jogador. Se todos passarem, a palavra é descartada."],
     ["🏁 Fim da partida", "Quando as palavras acabam, o jogador com mais pontos vence. Em caso de empate, ficam na mesma posição."],
   ];
@@ -970,11 +970,15 @@ async function resolverPalavra() {
     revelarPalavraCompleta();
     acertarPalavra(ganhos);
   } else {
-    // erro ao resolver: penaliza somente o jogador atual e NÃO passa a vez
-    aplicarPenalidadeErro();
-    mostrarPlacar();
+    // erro ao resolver: o jogador perde metade dos próprios pontos e a vez passa ao próximo
+    const jogador = jogadorAtual();
+    jogador.pontos -= Math.floor(jogador.pontos / 2);
+    partida.passesNaPalavra = 0;
     mostrarFeedback("❌ RESPOSTA INCORRETA!", "erro");
     tocarSom("erro");
+    proximoJogador();
+    mostrarJogadorAtual();
+    mostrarPlacar();
   }
 }
 
