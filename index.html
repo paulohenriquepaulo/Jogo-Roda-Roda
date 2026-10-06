@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Desafio das Palavras — descubra a palavra através das dicas!">
+  <title>Desafio das Palavras</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="confetti-container" aria-hidden="true"></div>
+
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite"></div>
+
+  <!-- Modal reutilizável -->
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" id="modal-card">
+      <h2 id="modal-title" class="modal-title"></h2>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <main id="app">
+    <!-- TELA INICIAL -->
+    <section id="tela-inicio" class="tela tela-ativa" data-tela="inicio">
+      <div class="hero">
+        <div class="hero-badge">Game Show</div>
+        <h1 class="titulo-principal">DESAFIO DAS PALAVRAS</h1>
+        <p class="subtitulo">Descubra a palavra através das dicas!</p>
+      </div>
+      <nav class="menu-principal" aria-label="Menu principal">
+        <button type="button" class="btn btn-primary btn-grande" data-acao="jogar" aria-label="Iniciar jogo">
+          <span class="btn-icon" aria-hidden="true">🎮</span> Jogar
+        </button>
+        <button type="button" class="btn btn-secondary btn-grande" data-acao="cadastro" aria-label="Cadastrar palavras">
+          <span class="btn-icon" aria-hidden="true">📝</span> Cadastrar Palavras
+        </button>
+        <button type="button" class="btn btn-secondary btn-grande" data-acao="lista" aria-label="Ver palavras cadastradas">
+          <span class="btn-icon" aria-hidden="true">📚</span> Palavras Cadastradas
+        </button>
+        <button type="button" class="btn btn-secondary btn-grande" data-acao="configuracoes" aria-label="Abrir configurações">
+          <span class="btn-icon" aria-hidden="true">⚙️</span> Configurações
+        </button>
+      </nav>
+    </section>
+
+    <!-- CADASTRO -->
+    <section id="tela-cadastro" class="tela" data-tela="cadastro" hidden>
+      <header class="tela-header">
+        <button type="button" class="btn btn-ghost btn-voltar" data-voltar="inicio" aria-label="Voltar ao início">← Voltar</button>
+        <h2 class="tela-titulo">CADASTRAR NOVA PALAVRA</h2>
+      </header>
+      <form id="form-cadastro" class="card form-card">
+        <div class="campo">
+          <label for="cad-categoria">Categoria</label>
+          <input type="text" id="cad-categoria" list="lista-categorias" placeholder="Ex.: Frutas, Animais..." autocomplete="off">
+          <datalist id="lista-categorias">
+            <option value="Bíblia"></option>
+            <option value="Animais"></option>
+            <option value="Profissões"></option>
+            <option value="Lugares"></option>
+            <option value="Objetos"></option>
+            <option value="Personalidades"></option>
+            <option value="Geral"></option>
+          </datalist>
+        </div>
+        <div class="campo">
+          <label for="cad-palavra">Palavra <span class="obrigatorio">*</span></label>
+          <input type="text" id="cad-palavra" required placeholder="Ex.: ABACAXI ou RIO DE JANEIRO" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="cad-dica">Dica <span class="obrigatorio">*</span></label>
+          <textarea id="cad-dica" rows="3" required placeholder="Descreva a dica para o jogador..."></textarea>
+        </div>
+        <div class="campo">
+          <label for="cad-pontos">Quantidade de pontos</label>
+          <input type="number" id="cad-pontos" min="0" value="100" step="1">
+        </div>
+        <p id="cad-erro" class="msg-erro" role="alert" hidden></p>
+        <button type="submit" class="btn btn-accent btn-grande">CADASTRAR PALAVRA</button>
+      </form>
+    </section>
+
+    <!-- LISTA -->
+    <section id="tela-lista" class="tela" data-tela="lista" hidden>
+      <header class="tela-header">
+        <button type="button" class="btn btn-ghost btn-voltar" data-voltar="inicio" aria-label="Voltar ao início">← Voltar</button>
+        <h2 class="tela-titulo">Palavras Cadastradas</h2>
+      </header>
+      <div class="card filtros-card">
+        <label class="sr-only" for="busca-palavra">Pesquisar palavra</label>
+        <input type="search" id="busca-palavra" placeholder="Pesquisar palavra..." autocomplete="off">
+        <label class="sr-only" for="filtro-categoria">Filtrar por categoria</label>
+        <select id="filtro-categoria" aria-label="Filtrar por categoria">
+          <option value="">Todas as categorias</option>
+        </select>
+        <button type="button" class="btn btn-accent" id="btn-nova-palavra-lista">+ Nova Palavra</button>
+      </div>
+      <div id="lista-palavras" class="lista-palavras"></div>
+      <p id="lista-vazia" class="lista-vazia hidden">Nenhuma palavra cadastrada ainda.</p>
+    </section>
+
+    <!-- EDITAR (tela) -->
+    <section id="tela-editar" class="tela" data-tela="editar" hidden>
+      <header class="tela-header">
+        <button type="button" class="btn btn-ghost btn-voltar" data-voltar="lista" aria-label="Voltar à lista">← Voltar</button>
+        <h2 class="tela-titulo">Editar Palavra</h2>
+      </header>
+      <form id="form-editar" class="card form-card">
+        <input type="hidden" id="edit-id">
+        <div class="campo">
+          <label for="edit-categoria">Categoria</label>
+          <input type="text" id="edit-categoria" list="lista-categorias-edit" autocomplete="off">
+          <datalist id="lista-categorias-edit">
+            <option value="Bíblia"></option>
+            <option value="Animais"></option>
+            <option value="Profissões"></option>
+            <option value="Lugares"></option>
+            <option value="Objetos"></option>
+            <option value="Personalidades"></option>
+            <option value="Geral"></option>
+          </datalist>
+        </div>
+        <div class="campo">
+          <label for="edit-palavra">Palavra</label>
+          <input type="text" id="edit-palavra" required autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="edit-dica">Dica</label>
+          <textarea id="edit-dica" rows="3" required></textarea>
+        </div>
+        <div class="campo">
+          <label for="edit-pontos">Pontos</label>
+          <input type="number" id="edit-pontos" min="0" step="1">
+        </div>
+        <p id="edit-erro" class="msg-erro" role="alert" hidden></p>
+        <button type="submit" class="btn btn-accent btn-grande">Salvar Alterações</button>
+      </form>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="tela-configuracoes" class="tela" data-tela="configuracoes" hidden>
+      <header class="tela-header">
+        <button type="button" class="btn btn-ghost btn-voltar" data-voltar="inicio" aria-label="Voltar ao início">← Voltar</button>
+        <h2 class="tela-titulo">Configurações</h2>
+      </header>
+      <form id="form-config" class="card form-card">
+        <fieldset class="fieldset">
+          <legend>Pontuação</legend>
+          <div class="campo">
+            <label for="cfg-pontos-iniciais">Pontos iniciais</label>
+            <input type="number" id="cfg-pontos-iniciais" min="0" step="1">
+          </div>
+          <div class="campo">
+            <label for="cfg-pontos-acerto">Pontos por letra correta</label>
+            <input type="number" id="cfg-pontos-acerto" min="0" step="1">
+          </div>
+          <div class="campo">
+            <label for="cfg-penalidade">Penalidade por letra errada</label>
+            <input type="number" id="cfg-penalidade" min="0" step="1">
+          </div>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend>Preferências</legend>
+          <label class="checkbox-label">
+            <input type="checkbox" id="cfg-som">
+            Ativar sons
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="cfg-animacoes">
+            Ativar animações
+          </label>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend>Tema</legend>
+          <div class="tema-opcoes" role="radiogroup" aria-label="Escolher tema">
+            <label class="radio-card">
+              <input type="radio" name="tema" value="claro">
+              <span>Tema claro</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="tema" value="escuro">
+              <span>Tema escuro</span>
+            </label>
+          </div>
+        </fieldset>
+        <button type="submit" class="btn btn-accent btn-grande">Salvar Configurações</button>
+      </form>
+    </section>
+
+    <!-- JOGO -->
+    <section id="tela-jogo" class="tela" data-tela="jogo" hidden>
+      <header class="jogo-header">
+        <h2 class="jogo-marca">DESAFIO DAS PALAVRAS</h2>
+        <div class="jogo-meta">
+          <span class="badge-categoria" id="jogo-categoria">—</span>
+          <span class="pontuacao-display" id="jogo-pontuacao" aria-live="polite">0 pts</span>
+        </div>
+      </header>
+
+      <div class="card dica-card">
+        <p class="dica-label">💡 DICA</p>
+        <p class="dica-texto" id="jogo-dica"></p>
+        <button type="button" class="btn btn-ghost btn-dica-extra hidden" id="btn-outra-dica" aria-label="Mostrar outra dica">
+          💡 Mostrar outra dica
+        </button>
+      </div>
+
+      <div class="feedback-jogo" id="feedback-jogo" role="status" aria-live="assertive"></div>
+
+      <div class="palavra-container" id="palavra-container" aria-label="Palavra a descobrir"></div>
+
+      <div class="teclado" id="teclado-virtual" role="group" aria-label="Teclado de letras"></div>
+
+      <div class="jogo-acoes">
+        <button type="button" class="btn btn-secondary" id="btn-pausar" aria-label="Pausar jogo">⏸ Pausar</button>
+        <button type="button" class="btn btn-accent" id="btn-resolver" aria-label="Tentar resolver a palavra inteira">🎯 RESOLVER PALAVRA</button>
+        <button type="button" class="btn btn-ghost" id="btn-reiniciar-partida" aria-label="Reiniciar partida">🔄 Reiniciar partida</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
