@@ -413,6 +413,10 @@ body::before {
   margin-bottom: 1rem;
 }
 
+#app.app-larga {
+  max-width: 1200px;
+}
+
 .jogo-marca {
   font-size: clamp(1.1rem, 3vw, 1.5rem);
   margin: 0 0 0.75rem;
@@ -426,6 +430,7 @@ body::before {
   justify-content: center;
   gap: 0.75rem;
   align-items: center;
+  margin-bottom: 1rem;
 }
 
 .badge-categoria {
@@ -522,6 +527,9 @@ body::before {
 .letra-slot.revelada {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
   border-color: var(--accent);
+}
+
+.letra-slot.nova {
   animation: flipReveal 0.45s ease;
 }
 
@@ -792,4 +800,590 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+/* ==========================================================================
+   Multijogador
+   ========================================================================== */
+
+.pulse-once {
+  animation: pulse 0.5s ease;
+}
+
+.opcional {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.campo-ajuda {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Configurar partida */
+.seletor-numerico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip-num {
+  position: relative;
+  cursor: pointer;
+}
+
+.chip-num input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chip-num span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.9rem;
+  height: 2.9rem;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.35);
+  font-weight: 800;
+  font-size: 1.1rem;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.chip-num:hover span {
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.chip-num input:checked + span {
+  border-color: var(--accent);
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--accent);
+}
+
+.chip-num input:focus-visible + span {
+  box-shadow: var(--focus-ring);
+}
+
+.campos-jogadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.campos-jogadores .campo {
+  min-width: 0;
+}
+
+.campos-jogadores .campo.hidden {
+  display: none !important;
+}
+
+.campo select {
+  max-width: 220px;
+}
+
+/* Lista de palavras */
+.palavra-item-dicas {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.palavra-item-dicas li + li {
+  margin-top: 0.15rem;
+}
+
+/* Layout do jogo: palavra à esquerda, vez + placar à direita */
+.jogo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.jogo-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+  grid-template-areas:
+    "principal vez"
+    "principal placar";
+  grid-template-rows: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.jogo-principal {
+  grid-area: principal;
+  min-width: 0;
+}
+
+.vez-card {
+  grid-area: vez;
+  text-align: center;
+  border: 2px solid var(--accent);
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.2), rgba(124, 58, 237, 0.28));
+}
+
+.vez-card.troca {
+  animation: vezPop 0.5s ease;
+}
+
+@keyframes vezPop {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.vez-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.vez-nome {
+  margin: 0.15rem 0 0.4rem;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--accent);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.vez-rodada {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Placar */
+.placar-card {
+  grid-area: placar;
+}
+
+.placar-titulo {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.placar-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.placar-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.placar-item.atual {
+  background: rgba(251, 191, 36, 0.16);
+  border-color: var(--accent);
+  font-weight: 800;
+}
+
+.placar-seta {
+  flex: none;
+  width: 1.7em;
+}
+
+.placar-nome {
+  min-width: 0;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.placar-pontilhado {
+  flex: 1;
+  min-width: 0.75rem;
+  border-bottom: 2px dotted var(--card-border);
+  transform: translateY(-0.2em);
+}
+
+.placar-pontos {
+  flex: none;
+  color: var(--accent);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Dicas */
+.dicas-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  text-align: left;
+}
+
+.dica-item {
+  padding: 0.6rem 0.85rem;
+  border-left: 4px solid var(--card-border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.dica-item.atual {
+  border-left-color: var(--accent);
+  animation: fadeIn 0.35s ease;
+}
+
+.dica-num {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.dicas-fim {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.btn-dica-extra {
+  padding: 0.55rem 1.1rem;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+/* Transição entre jogadores */
+#tela-transicao {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transicao-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  animation: modalPop 0.4s ease;
+}
+
+.transicao-titulo {
+  margin: 0;
+  font-size: clamp(1.9rem, 6vw, 2.9rem);
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.transicao-sub {
+  margin: 1rem 0 0.25rem;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.transicao-nome {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2.2rem, 9vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.transicao-rodada {
+  margin: 0 0 1.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.transicao-nota {
+  margin: -0.75rem 0 1.5rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* Resultado final */
+.final-card {
+  max-width: 640px;
+  margin: 1rem auto 0;
+  text-align: center;
+}
+
+.final-titulo {
+  margin: 0 0 1rem;
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  color: var(--accent);
+}
+
+.final-empate {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.35rem 1.1rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #fde047);
+  color: #1e1b4b;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ranking-lista {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  text-align: left;
+}
+
+.ranking-item.pos-1 {
+  border-color: var(--accent);
+  background: rgba(251, 191, 36, 0.14);
+}
+
+.ranking-medalha {
+  min-width: 2.4rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.ranking-nome {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.badge-empate {
+  padding: 0.1rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ranking-pontos {
+  color: var(--accent);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.final-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+/* Modais */
+.modal-vitoria .modal-nome {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.modal-pontos-ganhos {
+  margin: 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--success);
+}
+
+.modal-aviso {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+/* Celular / tablet estreito: vez no topo, placar abaixo da área principal */
+@media (max-width: 820px) {
+  .jogo-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "vez"
+      "principal"
+      "placar";
+    grid-template-rows: auto;
+  }
+
+  .placar-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* ==========================================================================
+   Modo apresentação (TV / projetor)
+   ========================================================================== */
+
+.modo-apresentacao #app {
+  max-width: none;
+  padding: 1rem clamp(1rem, 2.5vw, 3rem) 1.5rem;
+}
+
+.modo-apresentacao .jogo-marca,
+.modo-apresentacao .btn-admin {
+  display: none;
+}
+
+.modo-apresentacao .jogo-header {
+  margin-bottom: 0.5rem;
+}
+
+.modo-apresentacao .jogo-toolbar .btn {
+  opacity: 0.7;
+}
+
+.modo-apresentacao .jogo-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 27vw);
+  gap: 1.5rem;
+}
+
+.modo-apresentacao .badge-categoria {
+  font-size: clamp(1rem, 1.6vw, 2rem);
+}
+
+.modo-apresentacao .pontuacao-display {
+  font-size: clamp(1.4rem, 2.2vw, 2.8rem);
+}
+
+.modo-apresentacao .dica-num {
+  font-size: clamp(0.9rem, 1.3vw, 1.6rem);
+}
+
+.modo-apresentacao .dica-texto {
+  font-size: clamp(1.3rem, 2.3vw, 3rem);
+}
+
+.modo-apresentacao .dicas-fim,
+.modo-apresentacao .feedback-jogo {
+  font-size: clamp(1rem, 1.6vw, 2rem);
+}
+
+.modo-apresentacao .letra-slot {
+  width: clamp(2.75rem, 5.2vw, 6.5rem);
+  height: clamp(3.5rem, 6.6vw, 8rem);
+  font-size: clamp(1.75rem, 3.8vw, 5rem);
+}
+
+.modo-apresentacao .letra-slot.fixo {
+  width: auto;
+  min-width: 1.5rem;
+}
+
+.modo-apresentacao .letra-slot.espaco {
+  width: 1.25rem;
+}
+
+.modo-apresentacao .teclado {
+  max-width: min(1200px, 100%);
+  gap: clamp(0.35rem, 0.6vw, 0.8rem);
+}
+
+.modo-apresentacao .tecla {
+  min-width: clamp(2.5rem, 3.4vw, 5rem);
+  height: clamp(2.75rem, 4vw, 5.5rem);
+  font-size: clamp(1rem, 1.7vw, 2.4rem);
+}
+
+.modo-apresentacao .jogo-acoes .btn {
+  padding: 0.8rem 1.4rem;
+  font-size: clamp(1rem, 1.5vw, 1.9rem);
+}
+
+.modo-apresentacao .vez-label {
+  font-size: clamp(0.9rem, 1.3vw, 1.6rem);
+}
+
+.modo-apresentacao .vez-nome {
+  font-size: clamp(2rem, 4vw, 5rem);
+}
+
+.modo-apresentacao .vez-rodada,
+.modo-apresentacao .placar-titulo {
+  font-size: clamp(1.1rem, 1.8vw, 2.4rem);
+}
+
+.modo-apresentacao .placar-item {
+  font-size: clamp(1.1rem, 2vw, 2.6rem);
+}
+
+.modo-apresentacao .transicao-card,
+.modo-apresentacao .final-card {
+  max-width: min(1000px, 92vw);
+}
+
+.modo-apresentacao .transicao-titulo {
+  font-size: clamp(2.5rem, 6vw, 7rem);
+}
+
+.modo-apresentacao .transicao-sub,
+.modo-apresentacao .transicao-rodada {
+  font-size: clamp(1.2rem, 2.2vw, 3rem);
+}
+
+.modo-apresentacao .transicao-nome {
+  font-size: clamp(3rem, 9vw, 11rem);
+}
+
+.modo-apresentacao .ranking-item {
+  font-size: clamp(1.2rem, 2.2vw, 3rem);
+}
+
+@media (max-width: 820px) {
+  .modo-apresentacao .jogo-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.jogo-acoes .btn {
+  padding: 0.7rem 1.25rem;
 }

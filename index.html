@@ -48,6 +48,47 @@
       </nav>
     </section>
 
+    <!-- CONFIGURAR PARTIDA -->
+    <section id="tela-partida" class="tela" data-tela="partida" hidden>
+      <header class="tela-header">
+        <button type="button" class="btn btn-ghost btn-voltar" data-voltar="inicio" aria-label="Voltar ao início">← Voltar</button>
+        <h2 class="tela-titulo">CONFIGURAR PARTIDA</h2>
+      </header>
+      <form id="form-partida" class="card form-card" novalidate>
+        <fieldset class="fieldset">
+          <legend>Quantidade de jogadores</legend>
+          <div id="seletor-jogadores" class="seletor-numerico" role="radiogroup" aria-label="Quantidade de jogadores"></div>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend>Jogadores</legend>
+          <div id="campos-jogadores" class="campos-jogadores"></div>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend>Quantidade de palavras</legend>
+          <div class="campo">
+            <label for="partida-qtd-palavras">Palavras desta partida</label>
+            <select id="partida-qtd-palavras">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="25">25</option>
+              <option value="30">30</option>
+              <option value="todas">Todas</option>
+              <option value="outra">Outra quantidade…</option>
+            </select>
+            <div id="partida-custom-wrap" class="campo hidden">
+              <label for="partida-qtd-custom">Quantidade personalizada</label>
+              <input type="number" id="partida-qtd-custom" min="1" step="1" value="6" inputmode="numeric">
+            </div>
+            <p id="partida-info" class="campo-ajuda"></p>
+          </div>
+        </fieldset>
+        <p id="partida-erro" class="msg-erro" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-grande">🎮 INICIAR PARTIDA</button>
+      </form>
+    </section>
+
     <!-- CADASTRO -->
     <section id="tela-cadastro" class="tela" data-tela="cadastro" hidden>
       <header class="tela-header">
@@ -55,6 +96,10 @@
         <h2 class="tela-titulo">CADASTRAR NOVA PALAVRA</h2>
       </header>
       <form id="form-cadastro" class="card form-card">
+        <div class="campo">
+          <label for="cad-palavra">Palavra <span class="obrigatorio">*</span></label>
+          <input type="text" id="cad-palavra" required placeholder="Ex.: ABACAXI ou RIO DE JANEIRO" autocomplete="off">
+        </div>
         <div class="campo">
           <label for="cad-categoria">Categoria</label>
           <input type="text" id="cad-categoria" list="lista-categorias" placeholder="Ex.: Frutas, Animais..." autocomplete="off">
@@ -69,15 +114,19 @@
           </datalist>
         </div>
         <div class="campo">
-          <label for="cad-palavra">Palavra <span class="obrigatorio">*</span></label>
-          <input type="text" id="cad-palavra" required placeholder="Ex.: ABACAXI ou RIO DE JANEIRO" autocomplete="off">
+          <label for="cad-dica1">Dica 1 <span class="obrigatorio">*</span></label>
+          <input type="text" id="cad-dica1" required placeholder="Ex.: É uma fruta tropical." autocomplete="off">
         </div>
         <div class="campo">
-          <label for="cad-dica">Dica <span class="obrigatorio">*</span></label>
-          <textarea id="cad-dica" rows="3" required placeholder="Descreva a dica para o jogador..."></textarea>
+          <label for="cad-dica2">Dica 2 <span class="opcional">(opcional)</span></label>
+          <input type="text" id="cad-dica2" placeholder="Ex.: Possui uma casca áspera." autocomplete="off">
         </div>
         <div class="campo">
-          <label for="cad-pontos">Quantidade de pontos</label>
+          <label for="cad-dica3">Dica 3 <span class="opcional">(opcional)</span></label>
+          <input type="text" id="cad-dica3" placeholder="Ex.: Seu nome começa com a letra A." autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="cad-pontos">Pontos</label>
           <input type="number" id="cad-pontos" min="0" value="100" step="1">
         </div>
         <p id="cad-erro" class="msg-erro" role="alert" hidden></p>
@@ -113,6 +162,10 @@
       <form id="form-editar" class="card form-card">
         <input type="hidden" id="edit-id">
         <div class="campo">
+          <label for="edit-palavra">Palavra <span class="obrigatorio">*</span></label>
+          <input type="text" id="edit-palavra" required autocomplete="off">
+        </div>
+        <div class="campo">
           <label for="edit-categoria">Categoria</label>
           <input type="text" id="edit-categoria" list="lista-categorias-edit" autocomplete="off">
           <datalist id="lista-categorias-edit">
@@ -126,12 +179,16 @@
           </datalist>
         </div>
         <div class="campo">
-          <label for="edit-palavra">Palavra</label>
-          <input type="text" id="edit-palavra" required autocomplete="off">
+          <label for="edit-dica1">Dica 1 <span class="obrigatorio">*</span></label>
+          <input type="text" id="edit-dica1" required autocomplete="off">
         </div>
         <div class="campo">
-          <label for="edit-dica">Dica</label>
-          <textarea id="edit-dica" rows="3" required></textarea>
+          <label for="edit-dica2">Dica 2 <span class="opcional">(opcional)</span></label>
+          <input type="text" id="edit-dica2" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="edit-dica3">Dica 3 <span class="opcional">(opcional)</span></label>
+          <input type="text" id="edit-dica3" autocomplete="off">
         </div>
         <div class="campo">
           <label for="edit-pontos">Pontos</label>
@@ -152,16 +209,20 @@
         <fieldset class="fieldset">
           <legend>Pontuação</legend>
           <div class="campo">
-            <label for="cfg-pontos-iniciais">Pontos iniciais</label>
+            <label for="cfg-pontos-iniciais">Pontos sugeridos ao cadastrar uma palavra</label>
             <input type="number" id="cfg-pontos-iniciais" min="0" step="1">
           </div>
           <div class="campo">
-            <label for="cfg-pontos-acerto">Pontos por letra correta</label>
-            <input type="number" id="cfg-pontos-acerto" min="0" step="1">
+            <label for="cfg-penalidade">Penalidade por letra ou resposta errada (do jogador atual)</label>
+            <input type="number" id="cfg-penalidade" min="0" step="1">
           </div>
           <div class="campo">
-            <label for="cfg-penalidade">Penalidade por letra errada</label>
-            <input type="number" id="cfg-penalidade" min="0" step="1">
+            <label for="cfg-penalidade-dica">Penalidade por usar dica (reduz o valor da palavra)</label>
+            <select id="cfg-penalidade-dica">
+              <option value="0">0 pontos</option>
+              <option value="5">5 pontos</option>
+              <option value="10">10 pontos</option>
+            </select>
           </div>
         </fieldset>
         <fieldset class="fieldset">
@@ -196,30 +257,77 @@
     <section id="tela-jogo" class="tela" data-tela="jogo" hidden>
       <header class="jogo-header">
         <h2 class="jogo-marca">DESAFIO DAS PALAVRAS</h2>
-        <div class="jogo-meta">
-          <span class="badge-categoria" id="jogo-categoria">—</span>
-          <span class="pontuacao-display" id="jogo-pontuacao" aria-live="polite">0 pts</span>
+        <div class="jogo-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-apresentacao" aria-pressed="false">📺 MODO APRESENTAÇÃO</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-tela-cheia">⛶ Tela Cheia</button>
         </div>
       </header>
 
-      <div class="card dica-card">
-        <p class="dica-label">💡 DICA</p>
-        <p class="dica-texto" id="jogo-dica"></p>
-        <button type="button" class="btn btn-ghost btn-dica-extra hidden" id="btn-outra-dica" aria-label="Mostrar outra dica">
-          💡 Mostrar outra dica
-        </button>
+      <div class="jogo-layout">
+        <!-- Jogador atual -->
+        <div class="card vez-card" id="vez-card" aria-live="polite">
+          <p class="vez-label">VEZ DE:</p>
+          <p class="vez-nome" id="vez-nome">—</p>
+          <p class="vez-rodada">🎯 RODADA <span id="vez-rodada">1 / 1</span></p>
+        </div>
+
+        <!-- Palavra, dicas e teclado -->
+        <div class="jogo-principal">
+          <div class="jogo-meta">
+            <span class="badge-categoria" id="jogo-categoria">—</span>
+            <span class="pontuacao-display" id="jogo-pontuacao" aria-live="polite">Vale 0 pts</span>
+          </div>
+
+          <div class="card dica-card">
+            <ol class="dicas-lista" id="jogo-dicas"></ol>
+            <p class="dicas-fim hidden" id="dicas-fim">Não há mais dicas disponíveis.</p>
+            <button type="button" class="btn btn-secondary btn-dica-extra" id="btn-outra-dica">💡 PRÓXIMA DICA</button>
+          </div>
+
+          <div class="feedback-jogo" id="feedback-jogo" role="status" aria-live="assertive"></div>
+
+          <div class="palavra-container" id="palavra-container" aria-label="Palavra a descobrir"></div>
+
+          <div class="teclado" id="teclado-virtual" role="group" aria-label="Teclado de letras"></div>
+
+          <div class="jogo-acoes">
+            <button type="button" class="btn btn-accent" id="btn-resolver" aria-label="Tentar resolver a palavra inteira">🎯 RESOLVER PALAVRA</button>
+            <button type="button" class="btn btn-secondary" id="btn-passar-vez" aria-label="Passar a vez ao próximo jogador">⏭️ PASSAR A VEZ</button>
+            <button type="button" class="btn btn-secondary btn-admin" id="btn-pausar" aria-label="Pausar jogo">⏸ Pausar</button>
+            <button type="button" class="btn btn-ghost btn-admin" id="btn-reiniciar-partida" aria-label="Reiniciar partida">🔄 Reiniciar partida</button>
+          </div>
+        </div>
+
+        <!-- Placar -->
+        <aside class="card placar-card" aria-label="Placar">
+          <h3 class="placar-titulo">🏆 PLACAR</h3>
+          <ol class="placar-lista" id="placar-lista"></ol>
+        </aside>
       </div>
+    </section>
 
-      <div class="feedback-jogo" id="feedback-jogo" role="status" aria-live="assertive"></div>
+    <!-- TRANSIÇÃO ENTRE JOGADORES -->
+    <section id="tela-transicao" class="tela" data-tela="transicao" hidden>
+      <div class="card transicao-card">
+        <p class="transicao-titulo">PREPARE-SE!</p>
+        <p class="transicao-sub">Agora é a vez de</p>
+        <p class="transicao-nome" id="transicao-nome"></p>
+        <p class="transicao-rodada" id="transicao-rodada"></p>
+        <p class="transicao-nota hidden" id="transicao-nota"></p>
+        <button type="button" class="btn btn-primary btn-grande" id="btn-comecar-rodada">COMEÇAR RODADA</button>
+      </div>
+    </section>
 
-      <div class="palavra-container" id="palavra-container" aria-label="Palavra a descobrir"></div>
-
-      <div class="teclado" id="teclado-virtual" role="group" aria-label="Teclado de letras"></div>
-
-      <div class="jogo-acoes">
-        <button type="button" class="btn btn-secondary" id="btn-pausar" aria-label="Pausar jogo">⏸ Pausar</button>
-        <button type="button" class="btn btn-accent" id="btn-resolver" aria-label="Tentar resolver a palavra inteira">🎯 RESOLVER PALAVRA</button>
-        <button type="button" class="btn btn-ghost" id="btn-reiniciar-partida" aria-label="Reiniciar partida">🔄 Reiniciar partida</button>
+    <!-- RESULTADO FINAL -->
+    <section id="tela-final" class="tela" data-tela="final" hidden>
+      <div class="card final-card">
+        <h2 class="final-titulo">🏆 PARTIDA ENCERRADA 🏆</h2>
+        <p class="final-empate hidden" id="final-empate">🤝 EMPATE!</p>
+        <ol class="ranking-lista" id="ranking-lista"></ol>
+        <div class="final-acoes">
+          <button type="button" class="btn btn-primary btn-grande" id="btn-nova-partida">🔄 NOVA PARTIDA</button>
+          <button type="button" class="btn btn-secondary" id="btn-final-inicio">🏠 Início</button>
+        </div>
       </div>
     </section>
   </main>
