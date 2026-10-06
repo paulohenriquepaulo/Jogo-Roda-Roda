@@ -40,26 +40,22 @@ Em **Palavras Cadastradas** aparecem palavra, categoria, quantidade de dicas, po
 
 ## Como funciona o jogo
 
-- **Ordem dos jogadores:** fixa e circular (1 → 2 → 3 → 1…). Controlada por `partida.indiceJogadorAtual`, separada da palavra.
-- **Uma palavra por rodada:** a rodada `k` começa com o jogador `k` (voltando ao 1º depois do último). Com 3 jogadores e 5 palavras: 1, 2, 3, 1, 2.
-- **Palavras da partida:** as cadastradas são embaralhadas e só a quantidade escolhida é usada, sem repetição.
+- **Uma letra por vez:** o jogador da vez escolhe uma letra. Acertando ou errando, a vez passa para o próximo jogador (ordem fixa e circular: 1 → 2 → 3 → 1…).
 - **Letras:** teclado virtual ou físico (A–Z). Letra correta revela todas as ocorrências (A vale para Á/Ã, C vale para Ç…). Espaços, hífens e apóstrofos aparecem fixos.
-- **Letra errada:** mostra `❌ LETRA INCORRETA!` e aplica a penalidade configurada **somente ao jogador atual**.
-- **Resolver palavra:** aceita a resposta sem acentos e sem diferenciar maiúsculas/minúsculas. Se errar, mostra `❌ RESPOSTA INCORRETA!`, aplica a penalidade e **não passa a vez**.
-- **Dicas:** a Dica 1 aparece sozinha; **PRÓXIMA DICA** revela as seguintes. Sem mais dicas, o botão é desabilitado e aparece *"Não há mais dicas disponíveis."*
-- **⏭️ Passar a vez:** pede confirmação. A **mesma palavra** vai para o próximo jogador (letras e dicas já reveladas permanecem). Ninguém ganha pontos e a palavra não se perde.
-- **Todos passaram:** se todos os jogadores passarem a vez na mesma palavra, ela é descartada sem pontos (regra de encerramento) e a partida segue. Com 1 jogador, passar a vez descarta a palavra.
-- **Transição:** entre jogadores aparece a tela **PREPARE-SE!** com o nome de quem joga e o botão **COMEÇAR RODADA** (a palavra só aparece depois do clique). Com 1 jogador não há transição.
-- **Fim:** quando a última palavra termina, aparece o ranking com 🥇🥈🥉. Jogadores empatados ficam na mesma posição e é exibido **EMPATE!** (sem critério de desempate). **NOVA PARTIDA** volta à configuração e zera tudo.
+- **Palavras da partida:** as cadastradas são embaralhadas e só a quantidade escolhida é usada, sem repetição. Quando uma palavra termina, quem joga em seguida é o jogador seguinte ao que a completou.
+- **Resolver palavra:** aceita a resposta sem acentos e sem diferenciar maiúsculas/minúsculas. Se errar, mostra `❌ RESPOSTA INCORRETA!`, aplica a penalidade e não passa a vez.
+- **Dicas:** a Dica 1 aparece sozinha; **PRÓXIMA DICA** revela as seguintes.
+- **⏭️ Passar a vez:** pede confirmação e passa a mesma palavra ao próximo jogador. Se todos passarem em sequência, a palavra é descartada sem pontos.
+- **Fim:** o ranking mostra 🥇🥈🥉; empatados ficam na mesma posição (**EMPATE!**). **NOVA PARTIDA** zera tudo.
 
 ## Pontuação
 
-- Todos começam com **0 pontos**, sempre.
-- Cada palavra vale seus `pontos` cadastrados. Quem acerta (completando as letras ou resolvendo) soma `pontosDaPalavra` ao próprio placar.
-- **Dicas:** cada dica exibida reduz o valor da palavra em *penalidade por dica* (0, 5 ou 10; padrão 5). Com 100 pontos e penalidade 5: Dica 1 → 95, Dica 2 → 90, Dica 3 → 85. Para a 1ª dica ser gratuita (100 → 95 → 90), altere `PRIMEIRA_DICA_GRATIS` para `true` no topo de `script.js`.
-- **Erros** (letra ou resolução) tiram a *penalidade por erro* dos pontos do jogador atual (padrão 5).
+- Todos começam com **0 pontos**.
+- **Letra correta:** +5 pontos (configurável) para quem a escolheu, uma vez por letra.
+- **Palavra completa:** quem a completa (última letra ou *Resolver palavra*) ganha os pontos da palavra proporcionais ao que ainda estava **oculto**. Palavra de 100 pontos com 90% já revelada rende 10. O cálculo usa as letras ocultas *antes* da jogada e o valor aparece em "Vale X pts".
+- **Dicas:** cada dica exibida reduz o valor-base da palavra (0, 5 ou 10; padrão 5) antes do cálculo da porcentagem.
+- **Erros** (letra ou resolução) tiram a penalidade por erro (padrão 5; use 0 para desativar) do jogador atual.
 - A pontuação nunca fica abaixo de zero.
-- Se um jogador passa a vez depois de dicas usadas, o valor reduzido da palavra segue para o próximo jogador.
 
 ## Placar, modo apresentação e telas
 
@@ -80,11 +76,10 @@ A partida em andamento **não** é salva: placar e rodadas existem apenas enquan
 ## Configurações
 
 - **Pontos sugeridos ao cadastrar uma palavra** (valor padrão do formulário; não é a pontuação inicial dos jogadores).
+- **Pontos por letra correta** (padrão 5).
 - **Penalidade por letra ou resposta errada.**
 - **Penalidade por usar dica:** 0, 5 ou 10.
 - Sons, animações e tema claro/escuro.
-
-> O antigo campo "pontos por letra correta" foi removido: agora os pontos vêm somente da palavra.
 
 ## Personalizar cores
 

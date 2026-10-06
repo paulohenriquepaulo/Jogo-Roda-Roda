@@ -38,6 +38,7 @@ const PRIMEIRA_DICA_GRATIS = false;
 
 const CONFIG_PADRAO = {
   pontosIniciais: 100, // valor sugerido ao cadastrar uma palavra nova
+  pontosPorLetra: 5, // ganho do jogador por letra correta
   penalidadeErro: 5, // perda do jogador atual por letra/resposta errada
   penalidadeDica: 5, // redução do valor da palavra por dica exibida
   somAtivo: true,
@@ -484,6 +485,7 @@ function abrirEditar(id) {
 
 function preencherFormConfig() {
   $("cfg-pontos-iniciais").value = config.pontosIniciais;
+  $("cfg-pontos-letra").value = config.pontosPorLetra;
   $("cfg-penalidade").value = config.penalidadeErro;
   $("cfg-penalidade-dica").value = String(config.penalidadeDica);
   $("cfg-som").checked = config.somAtivo;
@@ -707,11 +709,30 @@ function proximaPalavra() {
   partida.indicePalavraAtual++;
 }
 
-/** Valor atual da palavra = pontos cadastrados − penalidade das dicas exibidas (nunca abaixo de 0). */
+/** Conta as posições de letras da palavra atual: total e ainda ocultas. */
+function contarLetras() {
+  const palavra = partida.palavraAtual.palavra;
+  let total = 0;
+  let ocultas = 0;
+  for (let i = 0; i < palavra.length; i++) {
+    if (!ehLetraAdivinhavel(palavra[i])) continue;
+    total++;
+    if (!letraReveladaNaPosicao(i)) ocultas++;
+  }
+  return { total, ocultas };
+}
+
+/**
+ * Valor atual da palavra = (pontos cadastrados − penalidade das dicas) × % ainda oculto.
+ * Ex.: palavra de 100 pontos com 90% já revelada vale 10. Nunca abaixo de 0.
+ */
 function calcularPontuacao() {
-  const base = partida.palavraAtual ? Number(partida.palavraAtual.pontos) || 0 : 0;
+  if (!partida.palavraAtual) return 0;
+  const base = Number(partida.palavraAtual.pontos) || 0;
   const dicasCobradas = Math.max(0, partida.dicasExibidas - (PRIMEIRA_DICA_GRATIS ? 1 : 0));
-  partida.pontosDaPalavra = Math.max(0, base - dicasCobradas * config.penalidadeDica);
+  const liquido = Math.max(0, base - dicasCobradas * config.penalidadeDica);
+  const { total, ocultas } = contarLetras();
+  partida.pontosDaPalavra = total ? Math.round((liquido * ocultas) / total) : 0;
   return partida.pontosDaPalavra;
 }
 
@@ -732,6 +753,11 @@ function mostrarProximaDica() {
   tocarSom("clique");
 }
 
+/**
+ * Cada letra escolhida (acertando ou errando) encerra a vez: joga o próximo jogador.
+ * Letra correta: +pontosPorLetra. Quem completa a palavra ganha o valor proporcional ao que
+ * ainda estava oculto antes da jogada.
+ */
 function tentarLetra(letra) {
   if (!acaoPermitida() || !partida.palavraAtual) return;
 
@@ -740,23 +766,34 @@ function tentarLetra(letra) {
 
   const norm = normalizarLetra(letra);
   partida.letrasEscolhidas.push(norm);
+  partida.passesNaPalavra = 0;
 
   if (resultado === "correta") {
+    const valorAntes = calcularPontuacao();
     if (!partida.letrasCorretas.includes(norm)) partida.letrasCorretas.push(norm);
+    jogadorAtual().pontos += config.pontosPorLetra;
     marcarTecla(norm, "correta");
     mostrarFeedback("CORRETO! 🎉", "acerto");
     tocarSom("acerto");
     animarAcerto();
     mostrarPalavra(norm);
-    if (palavraCompletamenteRevelada()) acertarPalavra();
+    if (palavraCompletamenteRevelada()) {
+      acertarPalavra(valorAntes);
+      return;
+    }
   } else {
     partida.letrasErradas.push(norm);
     aplicarPenalidadeErro();
     marcarTecla(norm, "errada");
     mostrarFeedback("❌ LETRA INCORRETA!", "erro");
     tocarSom("erro");
-    mostrarPlacar();
   }
+
+  calcularPontuacao();
+  atualizarValorPalavra();
+  proximoJogador();
+  mostrarJogadorAtual();
+  mostrarPlacar();
 }
 
 async function resolverPalavra() {
@@ -796,8 +833,9 @@ async function resolverPalavra() {
   }
 
   if (resposta === normalizarResposta(partida.palavraAtual.palavra)) {
+    const ganhos = calcularPontuacao();
     revelarPalavraCompleta();
-    acertarPalavra();
+    acertarPalavra(ganhos);
   } else {
     // erro ao resolver: penaliza somente o jogador atual e NÃO passa a vez
     aplicarPenalidadeErro();
@@ -819,10 +857,9 @@ function revelarPalavraCompleta() {
 }
 
 /** O jogador atual descobriu a palavra: recebe os pontos e a rodada termina. */
-async function acertarPalavra() {
+async function acertarPalavra(ganhos) {
   partida.rodadaEmAndamento = false;
   const jogador = jogadorAtual();
-  const ganhos = calcularPontuacao();
   jogador.pontos += ganhos;
   mostrarPlacar();
   await finalizarRodada({ resultado: "acertou", jogador, ganhos });
@@ -1409,6 +1446,7 @@ function registrarEventos() {
   $("form-config").addEventListener("submit", (e) => {
     e.preventDefault();
     config.pontosIniciais = inteiroNaoNegativo($("cfg-pontos-iniciais").value);
+    config.pontosPorLetra = inteiroNaoNegativo($("cfg-pontos-letra").value);
     config.penalidadeErro = inteiroNaoNegativo($("cfg-penalidade").value);
     config.penalidadeDica = inteiroNaoNegativo($("cfg-penalidade-dica").value);
     config.somAtivo = $("cfg-som").checked;
