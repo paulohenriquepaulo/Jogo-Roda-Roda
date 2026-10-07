@@ -23,26 +23,17 @@ const STORAGE_PALAVRAS = "palavrasJogo";
 const STORAGE_CONFIG = "configJogo";
 const STORAGE_TEMA = "temaJogo";
 const STORAGE_BANCO = "bancoBiblicoV1";
+const STORAGE_RECORDE = "recordeJogo";
 
 const MAX_JOGADORES = 8;
 const MAX_DICAS = 3;
 const MAX_PALAVRAS = 3; // palavras por desafio
 const OPCOES_QTD_PALAVRAS = [5, 10, 15, 20, 25, 30];
-const OPCOES_PENALIDADE_DICA = [0, 5, 10];
 const TELAS_DE_JOGO = ["jogo", "transicao", "final"];
 
-/**
- * Regra de pontuação das dicas: a DICA 1 aparece automaticamente em toda rodada.
- * false  -> cada dica exibida (inclusive a 1ª) reduz o valor da palavra (100 → 95 → 90 → 85).
- * true   -> a 1ª dica é gratuita; só a 2ª e a 3ª reduzem o valor (100 → 100 → 95 → 90).
- */
-const PRIMEIRA_DICA_GRATIS = false;
-
 const CONFIG_PADRAO = {
-  pontosIniciais: 100, // valor sugerido ao cadastrar uma palavra nova
-  pontosPorLetra: 5, // ganho do jogador por letra correta
-  penalidadeErro: 5, // perda do jogador atual por letra/resposta errada
-  penalidadeDica: 5, // redução do valor da palavra por dica exibida
+  pontosPorLetra: 5, // por ocorrência da letra na palavra e por letra restante ao completar
+  perdaPorErro: 2, // perda por letra errada (a pontuação pode ficar negativa)
   somAtivo: true,
   animacoesAtivas: true,
 };
@@ -99,7 +90,7 @@ const BANCO_BIBLICO = [
   ["ARCA DE NOÉ", ["Grande embarcação construída por ordem de Deus.", "Abrigou casais de animais durante o dilúvio."]],
   ["MANÁ", ["Alimento que caiu do céu no deserto.", "Sustentou os hebreus por quarenta anos."]],
   ["PENTECOSTES", ["Dia em que o Espírito Santo desceu sobre os discípulos.", "Eles falaram em outras línguas."]],
-].map(([palavra, dicas], i) => ({ id: i + 1, palavra, termos: [palavra], categoria: "Bíblia", dicas, pontos: 100 }));
+].map(([palavra, dicas], i) => ({ id: i + 1, palavra, termos: [palavra], categoria: "Bíblia", dicas }));
 
 const PALAVRAS_EXEMPLO = BANCO_BIBLICO;
 
@@ -177,7 +168,7 @@ function ehCaractereFixo(char) {
 }
 
 function textoPontos(n) {
-  return `${n} ${n === 1 ? "ponto" : "pontos"}`;
+  return `${n} ${Math.abs(n) === 1 ? "ponto" : "pontos"}`;
 }
 
 /** Aceita o formato novo (dicas: []) e o antigo (dica: "..."). */
@@ -216,13 +207,11 @@ function init() {
   construirBlocosDesafio("cad");
   construirBlocosDesafio("edit");
   registrarEventos();
-  $("cad-pontos").value = config.pontosIniciais;
   mostrarTela("inicio");
 }
 
 /** Converte um registro (novo ou antigo) para o modelo atual. Não perde dados. */
 function normalizarPalavraSalva(p) {
-  const pontos = Number(p.pontos);
   const termos = obterTermos(p);
   return {
     id: Number(p.id) || 0,
@@ -230,7 +219,6 @@ function normalizarPalavraSalva(p) {
     termos,
     categoria: String(p.categoria || "Geral").trim() || "Geral",
     dicas: obterDicas(p),
-    pontos: Number.isFinite(pontos) && pontos >= 0 ? Math.round(pontos) : config.pontosIniciais,
   };
 }
 
@@ -299,7 +287,6 @@ function carregarConfiguracoes() {
         config[chave] = salvo[chave];
       }
     });
-    if (!OPCOES_PENALIDADE_DICA.includes(config.penalidadeDica)) config.penalidadeDica = CONFIG_PADRAO.penalidadeDica;
   } catch {
     config = { ...CONFIG_PADRAO };
   }
@@ -329,6 +316,7 @@ function mostrarTela(nome) {
   const emJogo = TELAS_DE_JOGO.includes(nome);
   $("app").classList.toggle("app-larga", emJogo);
   if (!emJogo) sairModoApresentacao();
+  if (nome === "inicio") atualizarRecordeHome();
   if (nome === "lista") renderizarLista();
   if (nome === "configuracoes") preencherFormConfig();
   window.scrollTo(0, 0);
@@ -403,11 +391,6 @@ function limparDicas(lista) {
     .slice(0, MAX_DICAS);
 }
 
-function lerPontos(valor) {
-  if (valor === "" || valor === null || valor === undefined) return config.pontosIniciais;
-  return Number(valor);
-}
-
 function validarCadastro(dados) {
   const termos = (dados.termos || []).map((t) => String(t ?? "").trim());
   if (!termos.length || termos.some((t) => !t)) {
@@ -420,8 +403,6 @@ function validarCadastro(dados) {
   if (!dicas.length || dicas.some((d) => !d)) {
     return dicas.length > 1 ? "Preencha todas as dicas escolhidas." : "Informe a dica 1 (obrigatória).";
   }
-  const pts = lerPontos(dados.pontos);
-  if (!Number.isFinite(pts) || pts < 0) return "Pontuação inválida.";
   return null;
 }
 
@@ -432,7 +413,6 @@ function montarRegistro(dados) {
     termos,
     categoria: (dados.categoria || "Geral").trim() || "Geral",
     dicas: limparDicas(dados.dicas),
-    pontos: Math.round(lerPontos(dados.pontos)),
   };
 }
 
@@ -558,7 +538,7 @@ function renderizarLista() {
     const header = criar("div", "palavra-item-header");
     header.appendChild(criar("h3", "palavra-item-titulo", termos.join(" + ")));
     header.appendChild(
-      criar("span", "palavra-item-meta", `${item.categoria || "Geral"} · ${termos.length} ${termos.length === 1 ? "palavra" : "palavras"} · ${dicas.length} ${dicas.length === 1 ? "dica" : "dicas"} · ${item.pontos} pontos`)
+      criar("span", "palavra-item-meta", `${item.categoria || "Geral"} · ${termos.length} ${termos.length === 1 ? "palavra" : "palavras"} · ${dicas.length} ${dicas.length === 1 ? "dica" : "dicas"}`)
     );
 
     const listaDicas = criar("ol", "palavra-item-dicas");
@@ -628,16 +608,13 @@ function abrirEditar(id) {
   for (let n = 1; n <= MAX_PALAVRAS; n++) $(`edit-palavra${n}`).value = termos[n - 1] || "";
   for (let n = 1; n <= MAX_DICAS; n++) $(`edit-dica${n}`).value = dicas[n - 1] || "";
   atualizarCamposDesafio("edit");
-  $("edit-pontos").value = item.pontos;
   $("edit-erro").hidden = true;
   mostrarTela("editar");
 }
 
 function preencherFormConfig() {
-  $("cfg-pontos-iniciais").value = config.pontosIniciais;
   $("cfg-pontos-letra").value = config.pontosPorLetra;
-  $("cfg-penalidade").value = config.penalidadeErro;
-  $("cfg-penalidade-dica").value = String(config.penalidadeDica);
+  $("cfg-penalidade").value = config.perdaPorErro;
   $("cfg-som").checked = config.somAtivo;
   $("cfg-animacoes").checked = config.animacoesAtivas;
   aplicarTema(localStorage.getItem(STORAGE_TEMA) || "claro");
@@ -645,17 +622,19 @@ function preencherFormConfig() {
 
 /** Resumo das regras (usa os valores configurados de pontos e penalidades). */
 function mostrarRegras() {
+  const pl = config.pontosPorLetra;
   const regras = [
     ["👥 Jogadores", "De 1 a 8 jogadores, um por vez, sempre na mesma ordem. Todos começam com 0 pontos."],
     ["🔤 Sua vez", "Escolha uma letra no teclado da tela ou do computador. Acertando ou errando, a vez passa para o próximo jogador."],
-    ["✅ Letra certa", `A letra aparece em todos os lugares da palavra e você ganha ${config.pontosPorLetra} pontos.`],
-    ["❌ Letra errada", config.penalidadeErro > 0 ? `Você perde ${config.penalidadeErro} pontos.` : "Não perde pontos, mas a vez passa."],
-    ["💡 Dicas", `Cada desafio tem de 1 a 3 dicas. Pedir a próxima dica reduz o valor da palavra em ${config.penalidadeDica} pontos.`],
+    ["✅ Letra certa", `Ganha ${pl} pontos por cada vez que a letra aparece. Se ela aparece 3 vezes, são ${pl * 3} pontos.`],
+    ["❌ Letra errada", `Perde ${config.perdaPorErro} pontos. A pontuação pode ficar negativa.`],
+    ["💡 Dicas", "Cada desafio tem de 1 a 3 dicas. Pedir a próxima dica não custa pontos."],
     ["🧩 Desafios", "Um desafio pode ter até 3 palavras. Cada letra vale para todas ao mesmo tempo."],
-    ["🏆 Completar a palavra", "Quem completa a palavra (última letra ou Resolver) ganha os pontos dela, proporcionais ao que ainda estava oculto. Palavra de 100 pontos com 90% já mostrada vale 10."],
-    ["🎯 Resolver palavra", "Tente a resposta completa na sua vez. Se errar, você perde metade dos seus pontos e a vez passa para o próximo jogador."],
+    ["🏆 Completar a palavra", `Quem acerta a palavra completa ganha ${pl} pontos por cada letra que ainda estava oculta.`],
+    ["🎯 Resolver palavra", "Tente a resposta completa na sua vez. Se errar, você perde metade dos seus pontos (se tiver pontos positivos) e a vez passa para o próximo jogador."],
     ["⏭️ Passar a vez", "A mesma palavra vai para o próximo jogador. Se todos passarem, a palavra é descartada."],
-    ["🏁 Fim da partida", "Quando as palavras acabam, o jogador com mais pontos vence. Em caso de empate, ficam na mesma posição."],
+    ["🥇 Recorde", "A maior pontuação já alcançada em uma partida (com um ou mais jogadores) fica registrada na tela inicial."],
+    ["🏁 Fim da partida", "Quando as palavras acabam, vence quem tem mais pontos. Em caso de empate, ficam na mesma posição."],
   ];
   const lista = criar("ul", "regras-lista");
   regras.forEach(([titulo, texto]) => {
@@ -907,23 +886,16 @@ function contarLetras() {
   return { total, ocultas };
 }
 
-/**
- * Valor atual da palavra = (pontos cadastrados − penalidade das dicas) × % ainda oculto.
- * Ex.: palavra de 100 pontos com 90% já revelada vale 10. Nunca abaixo de 0.
- */
+/** Quanto vale completar a palavra agora: letras ainda ocultas × pontos por letra. */
 function calcularPontuacao() {
   if (!partida.palavraAtual) return 0;
-  const base = Number(partida.palavraAtual.pontos) || 0;
-  const dicasCobradas = Math.max(0, partida.dicasExibidas - (PRIMEIRA_DICA_GRATIS ? 1 : 0));
-  const liquido = Math.max(0, base - dicasCobradas * config.penalidadeDica);
-  const { total, ocultas } = contarLetras();
-  partida.pontosDaPalavra = total ? Math.round((liquido * ocultas) / total) : 0;
+  partida.pontosDaPalavra = contarLetras().ocultas * config.pontosPorLetra;
   return partida.pontosDaPalavra;
 }
 
+/** Letra errada: perde pontos (pode ficar negativo). */
 function aplicarPenalidadeErro() {
-  const jogador = jogadorAtual();
-  if (config.penalidadeErro > 0) jogador.pontos = Math.max(0, jogador.pontos - config.penalidadeErro);
+  jogadorAtual().pontos -= config.perdaPorErro;
 }
 
 function mostrarProximaDica() {
@@ -931,17 +903,14 @@ function mostrarProximaDica() {
   const dicas = obterDicas(partida.palavraAtual);
   if (partida.dicasExibidas >= dicas.length) return;
   partida.dicasExibidas++;
-  calcularPontuacao();
   mostrarDica();
-  atualizarValorPalavra();
   mostrarFeedback(`💡 DICA ${partida.dicasExibidas} REVELADA`, "");
   tocarSom("clique");
 }
 
 /**
  * Cada letra escolhida (acertando ou errando) encerra a vez: joga o próximo jogador.
- * Letra correta: +pontosPorLetra. Quem completa a palavra ganha o valor proporcional ao que
- * ainda estava oculto antes da jogada.
+ * Letra correta: +pontosPorLetra por ocorrência na(s) palavra(s). Letra errada: −perdaPorErro.
  */
 function tentarLetra(letra) {
   if (!acaoPermitida() || !partida.palavraAtual) return;
@@ -954,16 +923,16 @@ function tentarLetra(letra) {
   partida.passesNaPalavra = 0;
 
   if (resultado === "correta") {
-    const valorAntes = calcularPontuacao();
+    const ganhos = ocorrenciasDaLetra(letra) * config.pontosPorLetra;
     if (!partida.letrasCorretas.includes(norm)) partida.letrasCorretas.push(norm);
-    jogadorAtual().pontos += config.pontosPorLetra;
+    jogadorAtual().pontos += ganhos;
     marcarTecla(norm, "correta");
-    mostrarFeedback("CORRETO! 🎉", "acerto");
+    mostrarFeedback(`CORRETO! 🎉 +${ganhos}`, "acerto");
     tocarSom("acerto");
     animarAcerto();
     mostrarPalavra(norm);
     if (palavraCompletamenteRevelada()) {
-      acertarPalavra(valorAntes);
+      acertarPalavra(0); // sem letras restantes: não há bônus além dos pontos das letras
       return;
     }
   } else {
@@ -1033,7 +1002,7 @@ async function resolverPalavra() {
   } else {
     // erro ao resolver: o jogador perde metade dos próprios pontos e a vez passa ao próximo
     const jogador = jogadorAtual();
-    jogador.pontos -= Math.floor(jogador.pontos / 2);
+    if (jogador.pontos > 0) jogador.pontos -= Math.floor(jogador.pontos / 2);
     partida.passesNaPalavra = 0;
     mostrarFeedback("❌ RESPOSTA INCORRETA!", "erro");
     tocarSom("erro");
@@ -1114,7 +1083,9 @@ async function finalizarRodada({ resultado, jogador, ganhos }) {
       corpoHtml: criarCorpo([
         { texto: `${jogador.nome} descobriu:`, classe: "modal-nome" },
         { texto: palavra, classe: "palavra-revelada" },
-        { texto: `+${ganhos} PONTOS`, classe: "modal-pontos-ganhos" },
+        ganhos > 0
+          ? { texto: `+${ganhos} PONTOS (letras restantes)`, classe: "modal-pontos-ganhos" }
+          : { texto: "Completou com a última letra!", classe: "modal-pontos-ganhos" },
         `Pontuação atual: ${jogador.nome}: ${jogador.pontos}`,
       ]),
       acoes: [{ rotulo: rotuloBotao, valor: true, classe: "btn-accent" }],
@@ -1281,13 +1252,12 @@ function mostrarDica() {
   const temMais = partida.dicasExibidas < dicas.length;
   const btn = $("btn-outra-dica");
   btn.disabled = !temMais;
-  const custo = config.penalidadeDica > 0 ? ` (−${config.penalidadeDica} pts)` : "";
-  btn.textContent = `💡 PRÓXIMA DICA${temMais ? custo : ""}`;
+  btn.textContent = "💡 PRÓXIMA DICA";
   $("dicas-fim").classList.toggle("hidden", temMais);
 }
 
 function atualizarValorPalavra() {
-  $("jogo-pontuacao").textContent = `Vale ${partida.pontosDaPalavra} pts`;
+  $("jogo-pontuacao").textContent = `Completar vale ${partida.pontosDaPalavra} pts`;
 }
 
 /** letraNova: letra normalizada recém-revelada (animada) ou "*" para todas. */
@@ -1426,8 +1396,44 @@ function calcularRanking() {
   }));
 }
 
+function lerRecorde() {
+  try {
+    const r = JSON.parse(localStorage.getItem(STORAGE_RECORDE));
+    if (r && typeof r.nome === "string" && Number.isFinite(r.pontos)) return r;
+  } catch {
+    /* sem recorde salvo */
+  }
+  return null;
+}
+
+/** Mostra o recorde atual na tela inicial. */
+function atualizarRecordeHome() {
+  const r = lerRecorde();
+  const el = $("recorde-home");
+  el.textContent = "";
+  if (!r) {
+    el.appendChild(criar("span", "", "🏆 Recorde: ainda não há recorde. Jogue uma partida!"));
+    return;
+  }
+  el.appendChild(criar("span", "recorde-rotulo", "🏆 RECORDE"));
+  el.appendChild(criar("strong", "recorde-nome", r.nome));
+  el.appendChild(criar("span", "recorde-pontos", textoPontos(r.pontos)));
+}
+
+/** Se o melhor da partida superou o recorde (ou não havia recorde), grava o novo. Retorna true se bateu. */
+function registrarRecorde(ranking) {
+  const topo = ranking.filter((r) => r.posicao === 1);
+  const pontos = topo[0].jogador.pontos;
+  const atual = lerRecorde();
+  if (pontos <= (atual ? atual.pontos : 0)) return false;
+  const nome = topo.map((r) => r.jogador.nome).join(" e ");
+  localStorage.setItem(STORAGE_RECORDE, JSON.stringify({ nome, pontos, data: new Date().toISOString() }));
+  return true;
+}
+
 function mostrarResultadoFinal() {
   const ranking = calcularRanking();
+  $("final-recorde").classList.toggle("hidden", !registrarRecorde(ranking));
   const lista = $("ranking-lista");
   lista.textContent = "";
   const medalhas = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -1610,7 +1616,6 @@ function registrarEventos() {
     const err = cadastrarPalavra({
       ...lerDesafio("cad"),
       categoria: $("cad-categoria").value,
-      pontos: $("cad-pontos").value,
     });
     if (err) {
       erroEl.textContent = err;
@@ -1620,7 +1625,6 @@ function registrarEventos() {
     erroEl.hidden = true;
     $("form-cadastro").reset();
     atualizarCamposDesafio("cad");
-    $("cad-pontos").value = config.pontosIniciais;
     mostrarMensagem("Palavra cadastrada com sucesso!");
   });
 
@@ -1631,7 +1635,6 @@ function registrarEventos() {
     const err = editarPalavra(Number($("edit-id").value), {
       ...lerDesafio("edit"),
       categoria: $("edit-categoria").value,
-      pontos: $("edit-pontos").value,
     });
     if (err) {
       erroEl.textContent = err;
@@ -1646,16 +1649,13 @@ function registrarEventos() {
   // Configurações
   $("form-config").addEventListener("submit", (e) => {
     e.preventDefault();
-    config.pontosIniciais = inteiroNaoNegativo($("cfg-pontos-iniciais").value);
     config.pontosPorLetra = inteiroNaoNegativo($("cfg-pontos-letra").value);
-    config.penalidadeErro = inteiroNaoNegativo($("cfg-penalidade").value);
-    config.penalidadeDica = inteiroNaoNegativo($("cfg-penalidade-dica").value);
+    config.perdaPorErro = inteiroNaoNegativo($("cfg-penalidade").value);
     config.somAtivo = $("cfg-som").checked;
     config.animacoesAtivas = $("cfg-animacoes").checked;
     const tema = document.querySelector('input[name="tema"]:checked')?.value || "claro";
     salvarConfiguracoes();
     aplicarTema(tema);
-    $("cad-pontos").value = config.pontosIniciais;
     mostrarMensagem("Configurações salvas!");
   });
 

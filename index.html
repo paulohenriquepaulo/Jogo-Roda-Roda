@@ -31,6 +31,7 @@
         <div class="hero-badge">Game Show</div>
         <h1 class="titulo-principal">DESAFIO DAS PALAVRAS</h1>
         <p class="subtitulo">Descubra a palavra através das dicas!</p>
+        <p class="recorde-home" id="recorde-home" aria-live="polite"></p>
       </div>
       <nav class="menu-principal" aria-label="Menu principal">
         <button type="button" class="btn btn-primary btn-grande" data-acao="jogar" aria-label="Iniciar jogo">
@@ -114,10 +115,6 @@
           </datalist>
         </div>
         <div id="cad-bloco-dicas" class="bloco-desafio"></div>
-        <div class="campo">
-          <label for="cad-pontos">Pontos</label>
-          <input type="number" id="cad-pontos" min="0" value="100" step="1">
-        </div>
         <p id="cad-erro" class="msg-erro" role="alert" hidden></p>
         <button type="submit" class="btn btn-accent btn-grande">CADASTRAR PALAVRA</button>
       </form>
@@ -165,10 +162,6 @@
           </datalist>
         </div>
         <div id="edit-bloco-dicas" class="bloco-desafio"></div>
-        <div class="campo">
-          <label for="edit-pontos">Pontos</label>
-          <input type="number" id="edit-pontos" min="0" step="1">
-        </div>
         <p id="edit-erro" class="msg-erro" role="alert" hidden></p>
         <button type="submit" class="btn btn-accent btn-grande">Salvar Alterações</button>
       </form>
@@ -184,24 +177,12 @@
         <fieldset class="fieldset">
           <legend>Pontuação</legend>
           <div class="campo">
-            <label for="cfg-pontos-iniciais">Pontos sugeridos ao cadastrar uma palavra</label>
-            <input type="number" id="cfg-pontos-iniciais" min="0" step="1">
-          </div>
-          <div class="campo">
-            <label for="cfg-pontos-letra">Pontos por letra correta</label>
+            <label for="cfg-pontos-letra">Pontos por letra correta (por ocorrência na palavra)</label>
             <input type="number" id="cfg-pontos-letra" min="0" step="1">
           </div>
           <div class="campo">
-            <label for="cfg-penalidade">Penalidade por letra ou resposta errada (do jogador atual)</label>
+            <label for="cfg-penalidade">Pontos perdidos por letra errada</label>
             <input type="number" id="cfg-penalidade" min="0" step="1">
-          </div>
-          <div class="campo">
-            <label for="cfg-penalidade-dica">Penalidade por usar dica (reduz o valor da palavra)</label>
-            <select id="cfg-penalidade-dica">
-              <option value="0">0 pontos</option>
-              <option value="5">5 pontos</option>
-              <option value="10">10 pontos</option>
-            </select>
           </div>
         </fieldset>
         <fieldset class="fieldset">
@@ -301,6 +282,7 @@
     <section id="tela-final" class="tela" data-tela="final" hidden>
       <div class="card final-card">
         <h2 class="final-titulo">🏆 PARTIDA ENCERRADA 🏆</h2>
+        <p class="final-recorde hidden" id="final-recorde">🎉 NOVO RECORDE!</p>
         <p class="final-empate hidden" id="final-empate">🤝 EMPATE!</p>
         <ol class="ranking-lista" id="ranking-lista"></ol>
         <div class="final-acoes">

@@ -21,7 +21,7 @@ Jogo de navegador inspirado na dinâmica de programas de adivinhação de palavr
 1. Na tela inicial, clique em **Cadastrar Palavras**.
 2. Escolha **quantas palavras** o desafio terá (1, 2 ou 3) e preencha cada uma.
 3. Escolha **quantas dicas** (1, 2 ou 3) e preencha cada uma. Os campos aparecem e somem conforme a escolha, e todos os campos visíveis são obrigatórios.
-4. Informe a **Categoria** e os **Pontos** (padrão: 100) e clique em **CADASTRAR PALAVRA**.
+4. Informe a **Categoria** e clique em **CADASTRAR PALAVRA**.
 
 Exemplo: um desafio com **3 palavras e 1 dica** (dica: "Frutas tropicais"; palavras: ABACAXI, MANGA, CAJU).
 
@@ -33,14 +33,13 @@ Modelo salvo no LocalStorage:
   "palavra": "ABACAXI",
   "termos": ["ABACAXI", "MANGA", "CAJU"],
   "categoria": "Frutas",
-  "dicas": ["Frutas tropicais."],
-  "pontos": 100
+  "dicas": ["Frutas tropicais."]
 }
 ```
 
 `termos` guarda as palavras do desafio e `palavra` repete a primeira (compatibilidade). Registros antigos (`palavra` + `dica`) continuam funcionando e são convertidos automaticamente, sem perder dados.
 
-Em **Palavras Cadastradas** aparecem as palavras (ex.: `ABACAXI + MANGA + CAJU`), categoria, quantidade de palavras e dicas, pontos e as ações Editar/Excluir. Ao editar, dá para mudar as quantidades e todos os campos.
+Em **Palavras Cadastradas** aparecem as palavras (ex.: `ABACAXI + MANGA + CAJU`), categoria, quantidade de palavras e dicas e as ações Editar/Excluir. Ao editar, dá para mudar as quantidades e todos os campos.
 
 ## Como funciona o jogo
 
@@ -49,18 +48,25 @@ Em **Palavras Cadastradas** aparecem as palavras (ex.: `ABACAXI + MANGA + CAJU`)
 - **Letras:** teclado virtual ou físico (A–Z). Letra correta revela todas as ocorrências (A vale para Á/Ã, C vale para Ç…). Espaços, hífens e apóstrofos aparecem fixos.
 - **Palavras da partida:** as cadastradas são embaralhadas e só a quantidade escolhida é usada, sem repetição. Quando uma palavra termina, quem joga em seguida é o jogador seguinte ao que a completou.
 - **Resolver palavra:** com várias palavras, o jogo mostra um campo para cada uma (em qualquer ordem). Aceita a resposta sem acentos e sem diferenciar maiúsculas/minúsculas. Se errar, mostra `❌ RESPOSTA INCORRETA!`, o jogador perde **metade dos próprios pontos** e a vez passa ao próximo jogador.
-- **Dicas:** a Dica 1 aparece sozinha; **PRÓXIMA DICA** revela as seguintes.
+- **Dicas:** a Dica 1 aparece sozinha; **PRÓXIMA DICA** revela as seguintes (sem custo).
 - **⏭️ Passar a vez:** pede confirmação e passa a mesma palavra ao próximo jogador. Se todos passarem em sequência, a palavra é descartada sem pontos.
 - **Fim:** o ranking mostra 🥇🥈🥉; empatados ficam na mesma posição (**EMPATE!**). **NOVA PARTIDA** zera tudo.
 
 ## Pontuação
 
-- Todos começam com **0 pontos**.
-- **Letra correta:** +5 pontos (configurável) para quem a escolheu, uma vez por letra.
-- **Palavra completa:** quem a completa (última letra ou *Resolver palavra*) ganha os pontos da palavra proporcionais ao que ainda estava **oculto** (considerando as letras de todas as palavras do desafio). Palavra de 100 pontos com 90% já revelada rende 10. O cálculo usa as letras ocultas *antes* da jogada e o valor aparece em "Vale X pts".
-- **Dicas:** cada dica exibida reduz o valor-base da palavra (0, 5 ou 10; padrão 5) antes do cálculo da porcentagem.
-- **Letra errada** tira a penalidade por erro (padrão 5; use 0 para desativar) do jogador atual. **Resolver errado** tira metade dos pontos do jogador.
-- A pontuação nunca fica abaixo de zero.
+Todos começam com **0 pontos**.
+
+- **Letra certa:** +5 pontos **por ocorrência** da letra. Se a letra aparece 3 vezes (somando todas as palavras do desafio), são +15.
+- **Letra errada:** −2 pontos. A pontuação **pode ficar negativa**.
+- **Palavra completa:** quem acerta a palavra inteira (*Resolver palavra*) ganha **5 × a quantidade de letras que ainda estavam ocultas**. Quem completa ao acertar a última letra já recebeu os pontos das letras, sem bônus extra.
+- **Resolver errado:** o jogador perde metade dos pontos (só se estiver positivo) e a vez passa ao próximo.
+- **Dicas** não custam pontos.
+
+Na partida, "Completar vale X pts" mostra quanto vale resolver a palavra naquele momento.
+
+## Recorde
+
+A maior pontuação já alcançada em uma partida (com um ou mais jogadores) aparece na **tela inicial**, com nome e pontos. Quando a partida termina e o melhor jogador supera o recorde, ele é atualizado e a tela final mostra **NOVO RECORDE!**. Em empate no topo, os nomes aparecem juntos ("João e Maria"). Fica salvo no LocalStorage (`recordeJogo`).
 
 ## Placar, modo apresentação e telas
 
@@ -73,17 +79,16 @@ Em **Palavras Cadastradas** aparecem as palavras (ex.: `ABACAXI + MANGA + CAJU`)
 | Chave           | Conteúdo                                                        |
 |-----------------|-----------------------------------------------------------------|
 | `palavrasJogo`  | Lista de palavras cadastradas (modelo com `dicas`)              |
-| `configJogo`    | Pontos sugeridos, penalidade por erro, penalidade por dica, som e animações |
+| `configJogo`    | Pontos por letra, perda por erro, som e animações |
+| `recordeJogo`   | Último recorde (nome e pontos)                   |
 | `temaJogo`      | `claro` ou `escuro`                                             |
 
 A partida em andamento **não** é salva: placar e rodadas existem apenas enquanto a partida acontece. Na primeira execução o jogo já vem com **50 desafios de tema bíblico** (personagens, livros, lugares e eventos), todos com a categoria "Bíblia". Quem já tinha o jogo salvo recebe esses desafios uma única vez e perde apenas os 3 exemplos antigos (ABACAXI, ELEFANTE, BRASIL); as palavras cadastradas por você não são alteradas. Você pode excluir qualquer uma em **Palavras Cadastradas**.
 
 ## Configurações
 
-- **Pontos sugeridos ao cadastrar uma palavra** (valor padrão do formulário; não é a pontuação inicial dos jogadores).
 - **Pontos por letra correta** (padrão 5).
-- **Penalidade por letra ou resposta errada.**
-- **Penalidade por usar dica:** 0, 5 ou 10.
+- **Pontos perdidos por letra errada** (padrão 2).
 - Sons, animações e tema claro/escuro.
 
 ## Personalizar cores

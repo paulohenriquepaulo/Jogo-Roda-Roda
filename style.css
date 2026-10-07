@@ -1452,3 +1452,46 @@ body::before {
 .regras-lista strong {
   color: var(--accent);
 }
+
+/* Recorde */
+.recorde-home {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+  margin: -0.75rem 0 1.5rem;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.recorde-rotulo {
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.recorde-nome {
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.recorde-pontos {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.final-recorde {
+  display: inline-block;
+  margin: 0 0.5rem 1rem 0;
+  padding: 0.35rem 1.1rem;
+  border-radius: 999px;
+  background: var(--success);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
